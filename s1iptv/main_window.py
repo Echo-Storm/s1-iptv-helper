@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QLabel, QFrame, QHBoxLayout, QVBoxLayout,
     QPushButton, QTabWidget, QTreeWidget, QTreeWidgetItem, QListWidget,
     QListWidgetItem, QComboBox, QSplitter, QPlainTextEdit, QStatusBar,
-    QMessageBox, QFileDialog,
+    QMessageBox, QFileDialog, QLineEdit,
 )
 
 from . import export as export_module
@@ -151,6 +151,10 @@ class CategoryTab(QWidget):
         deselect_all_btn.clicked.connect(lambda: self._set_all_checked(False))
         tree_header_row.addWidget(deselect_all_btn)
         left_layout.addLayout(tree_header_row)
+        self.tree_filter_edit = QLineEdit()
+        self.tree_filter_edit.setPlaceholderText("Filter taxonomy...")
+        self.tree_filter_edit.textChanged.connect(self._apply_tree_filter)
+        left_layout.addWidget(self.tree_filter_edit)
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(["Category / Subcategory / Raw name"])
         self.tree.itemChanged.connect(self._on_tree_item_changed)
@@ -233,7 +237,41 @@ class CategoryTab(QWidget):
             self.tree.addTopLevelItem(cat_item)
         self.tree.expandToDepth(0)
         self.tree.blockSignals(False)
+        self._apply_tree_filter(self.tree_filter_edit.text())
         self._refresh_export_preview()
+
+    def _apply_tree_filter(self, text):
+        """
+        Hide any category/subcategory/raw-name row that doesn't match, but
+        keep every ancestor of a match visible (and expanded) so the match
+        is actually reachable -- and once a row itself matches, show its
+        whole subtree unconditionally rather than filtering further down
+        (searching "USA LIVE" should show everything under it, not just
+        raw names that happen to also contain "USA LIVE").
+        """
+        text = text.strip().lower()
+        for i in range(self.tree.topLevelItemCount()):
+            self._filter_tree_item(self.tree.topLevelItem(i), text)
+
+    def _filter_tree_item(self, item, text):
+        if not text or text in item.text(0).lower():
+            item.setHidden(False)
+            self._show_all_descendants(item)
+            return True
+        child_match = False
+        for i in range(item.childCount()):
+            if self._filter_tree_item(item.child(i), text):
+                child_match = True
+        item.setHidden(not child_match)
+        if child_match:
+            item.setExpanded(True)
+        return child_match
+
+    def _show_all_descendants(self, item):
+        for i in range(item.childCount()):
+            child = item.child(i)
+            child.setHidden(False)
+            self._show_all_descendants(child)
 
     @staticmethod
     def _aggregate_state(included_flags):
