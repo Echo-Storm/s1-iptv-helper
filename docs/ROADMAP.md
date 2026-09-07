@@ -152,6 +152,77 @@ regression tests for exactly this gap (`tests/test_export.py`).
   (like the blank-buffer spinner) could silently fail to persist because
   it wasn't obvious the same button also covered it.
 
+### GUI polish pass (2026-09-07)
+
+- **Banner**: had a `role="banner"` property set but no matching QSS rule
+  at all, so it had no background/border and just blended into the rest
+  of the window. Now a fixed-height (64px) panel-colored bar with a
+  bright accent top/bottom border, a larger bold title flanked by
+  vertical `|` separator glyphs and thin accent lines running to the
+  edges — matches the sibling apps' actual rendered header treatment
+  (see `TorBox_Manager/tbm/ui.py`'s `_build_header()`).
+- **Sidebar**: also had no background/border before this and blended into
+  the window the same way. Now a distinct panel with a right border,
+  plus icon glyphs on every action button (⟳ 💾 🔢 ↑) and a green
+  left-border highlight on hover, matching the sibling apps' left-panel
+  convention.
+- **Donate button**: added a Ko-fi link (`donate ♥ ko-fi`) as a permanent
+  widget in the status bar, same URL and treatment as Echo Audio
+  Converter's own donate button (`https://ko-fi.com/xechostormx/tip`).
+- **Fixed the spinbox arrows for real**: the previous session's QSpinBox
+  fix (CSS border-triangle trick for `::up-arrow`/`::down-arrow`) turned
+  out to render as a plain filled square in Qt's QSS engine, not a
+  triangle — confirmed by rendering the actual window and zooming into
+  the control, not just by reasoning about the CSS. Removing the custom
+  arrow rule entirely made it render nothing at all (once any QSS touches
+  a spin box, Qt stops falling back to its native arrow glyph too). Fixed
+  properly with two tiny generated PNG triangles (`s1iptv/assets/spin_up.png`,
+  `spin_down.png`) referenced via `image: url(...)` — the only reliable
+  way to customize this particular subcontrol in Qt's stylesheet engine.
+- Added `docs/screenshots/` (Live TV tab, Settings tab with credentials
+  redacted) and a Screenshots section in `README.md`.
+- Verification method for this whole pass: rendered the real `MainWindow`
+  with the real theme applied (not the offscreen QPA platform, which has
+  no usable fonts in this environment and renders all text as tofu boxes)
+  and grabbed actual screenshots to check layout/spacing/colors, rather
+  than just reading the QSS and assuming it would look right.
+
+### Bugsweep + GitHub prep (2026-09-07)
+
+Read every line of all 8 `s1iptv/*.py` modules (2700+ lines total) looking
+for bugs before going public. Found one real, if currently dormant, one:
+
+- `LocalsSelectionStore.save()` called bare `sorted()` on the set of
+  selected stream IDs. Verified against a live fetch that this provider's
+  `stream_id` is consistently `int` across every category checked, so
+  this isn't firing today -- but Xtream panels are known to be
+  inconsistent about quoting numeric fields between endpoints, and a
+  mixed str/int set would raise `TypeError` the moment it happened.
+  Changed to `sorted(..., key=str)`, which sorts identically for a
+  uniform-type set and can't crash on a mixed one.
+- Investigated `QLockFile.setStaleLockTime(0)` in `main.py` as a possible
+  bug (worried it might disable stale-lock detection entirely, defeating
+  the single-instance guarantee) -- checked Qt's actual source
+  (`qlockfile.cpp`) rather than trusting memory of the API: `0` only
+  disables the *timestamp* heuristic, the *process-liveness* check (is
+  the PID that owns the lock still running) always still applies. This is
+  correct as written, not a bug.
+
+**Made the repo safe to make public**: grepped tracked files (and the
+*entire* git history, via `git log --all --name-only`, not just the
+current tree) for the real IPTV provider's domain and this account's
+credentials. History was clean, but the domain was hardcoded in two
+tracked files (`docs/PROVIDER_NOTES.md`, a docstring in
+`xtream_client.py`) and, worse, baked into the checked-in
+`config.example.json` template as its example server value. All three
+now use a generic placeholder or no domain at all -- the point of a
+`config.example.json` is to show the *shape*, not carry a real value
+someone would copy-paste. Real domain/credentials only ever live in the
+gitignored `config.json`.
+
+Version bumped 0.6.0 -> 0.6.1. Pushed to GitHub as a public repo,
+`s1-iptv-helper`.
+
 ## Later, can wait
 
 - Packaging: PyInstaller `.spec` + `launch.bat`-driven venv bootstrap,

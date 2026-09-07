@@ -145,9 +145,15 @@ class LocalsSelectionStore:
         return self
 
     def save(self):
+        # key=str: stream_id has always been int on this provider (verified
+        # against a live fetch across categories), but Xtream panels are
+        # known to be inconsistent about quoting numeric fields -- a bare
+        # sorted() would raise TypeError the moment two different fetches
+        # ever produced a str id and an int id in the same selected_ids set.
+        # Sorting by str is stable and correct either way.
         with open(self.path, 'w', encoding='utf-8') as f:
             json.dump({
-                'selected_stream_ids': sorted(self.selected_ids),
+                'selected_stream_ids': sorted(self.selected_ids, key=str),
                 'default_states': sorted(self.default_states),
                 'merge_into_parent': self.merge_into_parent,
             }, f, indent=2)

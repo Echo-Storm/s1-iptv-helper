@@ -1,5 +1,7 @@
 {
-  "server": "https://blueonesuperoceanhere.com",
+  "server": "https://your-provider.example.com",
   "username": "YOUR_USERNAME",
-  "password": "YOUR_PASSWORD"
+  "password": "YOUR_PASSWORD",
+  "export_path": "",
+  "blank_buffer": 20
 }

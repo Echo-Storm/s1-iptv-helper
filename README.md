@@ -1,18 +1,22 @@
-# S1 IPTV Helper
+<p align="center">
+  <img src="docs/banner.svg" alt="S1 IPTV Helper" width="100%">
+</p>
 
-**Version:** 0.6.0
+A PyQt6 desktop tool for organizing an **Xtream Codes-compatible IPTV
+service's** live-TV and on-demand (movies/series) categories into a curated
+**category → subcategory** structure. Works with any Xtream Codes API
+(`player_api.php`) provider — it doesn't target, endorse, or bundle access
+to any specific service. Bring your own subscription's server/username/
+password; this tool only organizes what that account's API already exposes.
 
-A PyQt6 desktop tool for organizing the IPTV service's live-TV and on-demand
-(movies/series) categories into a curated **category → subcategory**
-structure, replacing the old tkinter-based `superplayerone_gui.py` M3U
-filter.
-
-This is *not* a per-channel picker. The goal is to group the provider's raw,
-frequently-renamed category list (e.g. `USA NFL GAMES`, `UFC EVENTS`,
-`Netflix`, `Hulu`) under stable umbrella categories with subcategories (e.g.
-Live → **Sports** → PPV / NFL / NBA / ...; On Demand → **Streaming
-Services** → Netflix / Hulu / ...), so the curation survives the provider
-renaming things underneath it.
+This is *not* a per-channel picker for Live TV/On Demand. The goal is to
+group the provider's raw, frequently-renamed category list (e.g. `USA NFL
+GAMES`, `UFC EVENTS`, `Netflix`, `Hulu`) under stable umbrella categories
+with subcategories (e.g. Live → **Sports** → PPV / NFL / NBA / ...; On
+Demand → **Streaming Services** → Netflix / Hulu / ...), so the curation
+survives the provider renaming things underneath it. The **Locals** tab is
+the one place that *is* a per-channel picker, for state-affiliate channels
+specifically.
 
 ## Status
 
@@ -21,6 +25,16 @@ export (with automatic blank-event-slot trimming), a per-channel Locals
 picker that auto-loads on startup, in-app settings, and a 70-test automated
 regression suite. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full
 feature history and what's still planned.
+
+## Screenshots
+
+| Live TV | On Demand |
+|---|---|
+| ![Live TV tab](docs/screenshots/live-tv-tab.png) | ![On Demand tab](docs/screenshots/on-demand-tab.png) |
+
+| Locals | Settings |
+|---|---|
+| ![Locals tab](docs/screenshots/locals-tab.png) | ![Settings tab](docs/screenshots/settings-tab.png) |
 
 ## Why this exists
 
@@ -40,7 +54,7 @@ history and the live/VOD split that shapes this app's design.
    and pauses so you can edit it).
 3. Run `launch.bat`.
 
-`config.json` is gitignored — it holds this account's plaintext credentials
+`config.json` is gitignored — it holds your account's plaintext credentials
 and is never committed.
 
 ## Testing
@@ -66,10 +80,15 @@ layout conventions pulled from those apps.
 s1iptv/             application package
   main.py           entry point
   theme.py          shared QSS (Echo/S1 dark+green house style)
+  assets/           small bundled images (spinbox arrow icons)
   xtream_client.py  Xtream Codes API client (live + VOD categories/streams)
   category_store.py category -> subcategory taxonomy model, JSON-backed
   main_window.py    main window / UI
 docs/                design & maintenance documentation
+  banner.svg         README banner -- hand-edit the "v0.6.1" text here
+                     when bumping APP_VERSION in main_window.py; nothing
+                     generates this automatically
+  screenshots/       README screenshots
 config.example.json  credential template (tracked)
 config.json           real credentials (gitignored)
 ```

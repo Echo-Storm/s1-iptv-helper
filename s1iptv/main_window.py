@@ -2,7 +2,8 @@
 
 import traceback
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl
+from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QLabel, QFrame, QHBoxLayout, QVBoxLayout,
     QPushButton, QTabWidget, QTreeWidget, QTreeWidgetItem, QListWidget,
@@ -22,7 +23,11 @@ from .logger import get_logger
 from .settings_tab import SettingsTab
 from .xtream_client import XtreamClient, ConfigError, NetworkError, load_config_or_blank, save_config
 
-APP_VERSION = "0.6.0"
+APP_VERSION = "0.6.1"
+
+# Same Ko-fi page already used by the sibling apps (Echo Audio Converter,
+# TorBox Manager EchoStorm Edition) -- see their donate buttons.
+KOFI_URL = "https://ko-fi.com/xechostormx/tip"
 
 RAW_NAME_ROLE = Qt.ItemDataRole.UserRole
 
@@ -125,6 +130,14 @@ def _banner_line():
     line.setProperty('role', 'banner-line')
     line.setFrameShape(QFrame.Shape.HLine)
     return line
+
+
+def _banner_separator():
+    """Vertical '|' glyph flanking the banner title -- matches the sibling
+    apps' header treatment (TorBox_Manager's _build_header())."""
+    sep = QLabel("|")
+    sep.setProperty('role', 'banner-sep')
+    return sep
 
 
 def _section_label(text):
@@ -593,6 +606,17 @@ class MainWindow(QMainWindow):
         root.addWidget(self.log_view)
 
         self.setStatusBar(QStatusBar())
+
+        # Ko-fi donate link -- permanent widget, far right of the status bar.
+        # Same pattern and same page as the sibling apps' own donate buttons.
+        donate_btn = QPushButton("donate  ♥  ko-fi")
+        donate_btn.setObjectName("donateBtn")
+        donate_btn.setFlat(True)
+        donate_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        donate_btn.setToolTip("Support development on Ko-fi")
+        donate_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(KOFI_URL)))
+        self.statusBar().addPermanentWidget(donate_btn)
+
         self._log("Ready. Taxonomy loaded from " + self.store.path)
         if self.store.last_sync_notes:
             self._log(f"Auto-synced {len(self.store.last_sync_notes)} raw categories to match updated taxonomy seed:")
@@ -609,51 +633,70 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------------
     def _build_banner(self):
+        """Fixed-height header bar: [v0.6.0] ———|  S1 IPTV HELPER  |——— [ECHOSTORM EDITION]
+        Matches the sibling apps' actual header treatment (see
+        TorBox_Manager's _build_header()) -- panel-colored bar, bright
+        accent top/bottom border, vertical separator glyphs flanking a
+        large bold title, thin accent lines running out to the edges."""
         banner = QWidget()
         banner.setProperty('role', 'banner')
+        banner.setFixedHeight(64)
         layout = QHBoxLayout(banner)
-        layout.setContentsMargins(16, 10, 16, 10)
+        layout.setContentsMargins(16, 0, 16, 0)
+        layout.setSpacing(0)
 
         version_lbl = QLabel(f"v{APP_VERSION}")
         version_lbl.setProperty('role', 'banner-tag')
+        version_lbl.setFixedWidth(48)
         layout.addWidget(version_lbl)
 
         layout.addWidget(_banner_line(), stretch=1)
+        layout.addWidget(_banner_separator())
 
         title_lbl = QLabel("S1 IPTV HELPER")
         title_lbl.setProperty('role', 'banner-title')
         layout.addWidget(title_lbl)
 
+        layout.addWidget(_banner_separator())
         layout.addWidget(_banner_line(), stretch=1)
 
         edition_lbl = QLabel("ECHOSTORM EDITION")
         edition_lbl.setProperty('role', 'banner-tag')
+        edition_lbl.setFixedWidth(150)
+        edition_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(edition_lbl)
 
         return banner
 
     def _build_sidebar(self):
         sidebar = QWidget()
+        sidebar.setProperty('role', 'sidebar')
         sidebar.setFixedWidth(200)
         layout = QVBoxLayout(sidebar)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(4)
 
         layout.addWidget(_section_label("Connection"))
-        self.refresh_categories_btn = QPushButton("Refresh Categories")
+        self.refresh_categories_btn = QPushButton("⟳  Refresh Categories")
         self.refresh_categories_btn.setProperty('role', 'primary')
+        self.refresh_categories_btn.setMinimumHeight(30)
         self.refresh_categories_btn.clicked.connect(self._refresh_categories)
         layout.addWidget(self.refresh_categories_btn)
 
         layout.addWidget(_section_label("Taxonomy"))
-        save_btn = QPushButton("Save Taxonomy")
+        save_btn = QPushButton("\U0001f4be  Save Taxonomy")
+        save_btn.setMinimumHeight(30)
         save_btn.clicked.connect(self._save_taxonomy)
         layout.addWidget(save_btn)
 
         layout.addWidget(_section_label("Export"))
-        self.count_btn = QPushButton("Count Channels")
+        self.count_btn = QPushButton("\U0001f522  Count Channels")
+        self.count_btn.setMinimumHeight(30)
         self.count_btn.clicked.connect(self._count_channels)
         layout.addWidget(self.count_btn)
-        self.export_btn = QPushButton("Export Live M3U...")
+        self.export_btn = QPushButton("↑  Export Live M3U...")
         self.export_btn.setProperty('role', 'primary')
+        self.export_btn.setMinimumHeight(30)
         self.export_btn.clicked.connect(self._export_m3u)
         layout.addWidget(self.export_btn)
 

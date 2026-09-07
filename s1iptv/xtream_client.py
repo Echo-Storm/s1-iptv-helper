@@ -206,7 +206,7 @@ class XtreamClient:
         """
         No /live/ prefix and no extension -- confirmed against a live fetch
         of this provider's own m3u_plus export (2026-09-06):
-          https://blueonesuperoceanhere.com:443/{user}/{pass}/{stream_id}
+          https://{server}:443/{user}/{pass}/{stream_id}
         This differs from the generic Xtream Codes convention (which usually
         has /live/ and a .ts/.m3u8 extension) -- don't "fix" this to match
         the generic pattern without re-verifying against a real fetch first.

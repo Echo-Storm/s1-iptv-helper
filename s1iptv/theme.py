@@ -7,6 +7,18 @@ the same pattern TorBox_Manager/tbm/ui.py uses — no external .qss resource
 file, no theming library.
 """
 
+import os
+
+# QSpinBox's ::up-arrow/::down-arrow subcontrols need a real image -- Qt's
+# QSS engine doesn't support the usual CSS zero-size-box-plus-transparent-
+# border triangle trick (confirmed: it renders as a plain filled square,
+# not a triangle), and once any QSS touches the spin box at all, Qt stops
+# falling back to drawing its own native arrow glyph too (renders nothing).
+# Two tiny generated PNGs in assets/ are the reliable fix.
+_ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets').replace('\\', '/')
+SPIN_UP_ARROW = f"{_ASSETS_DIR}/spin_up.png"
+SPIN_DOWN_ARROW = f"{_ASSETS_DIR}/spin_down.png"
+
 COLOR_BG = "#181818"
 COLOR_PANEL = "#1f1f1f"
 COLOR_PANEL_ALT = "#232323"
@@ -40,7 +52,7 @@ def build_stylesheet():
         background-color: {COLOR_BG};
     }}
 
-    /* ---- Sidebar section labels ------------------------------------ */
+    /* ---- Sidebar ------------------------------------------------------ */
     QLabel[role="section"] {{
         color: {COLOR_ACCENT};
         font-weight: 600;
@@ -49,16 +61,58 @@ def build_stylesheet():
         padding-top: 6px;
     }}
 
+    /* Distinct panel, matching the sibling apps' left sidebar treatment --
+       previously this had no background/border at all and blended straight
+       into the window, which read as unfinished next to Echo Audio
+       Converter / TorBox Manager. */
+    QWidget[role="sidebar"] {{
+        background-color: {COLOR_PANEL};
+        border-right: 1px solid {COLOR_BORDER_BRIGHT};
+    }}
+    QWidget[role="sidebar"] QPushButton {{
+        text-align: left;
+        padding-left: 10px;
+        border-left: 2px solid transparent;
+    }}
+    QWidget[role="sidebar"] QPushButton:hover {{
+        border-left: 2px solid {COLOR_ACCENT};
+    }}
+    QWidget[role="sidebar"] QPushButton[role="primary"]:hover {{
+        border-left: 2px solid {COLOR_ACCENT};
+    }}
+
+    /* ---- Banner --------------------------------------------------------
+       Fixed-height header bar with a bright top/bottom border, matching
+       the sibling apps' actual rendered header treatment (both define an
+       unused "amber header bar" color token but never apply it -- the
+       real look in both is a panel-colored bar with accent borders, which
+       is what this matches). Previously this widget had a role set but no
+       matching QSS rule at all, so it had no background/border and just
+       blended into the rest of the window. */
+    QWidget[role="banner"] {{
+        background-color: {COLOR_PANEL};
+        border-top: 1px solid {COLOR_ACCENT};
+        border-bottom: 2px solid {COLOR_ACCENT};
+    }}
+
     QLabel[role="banner-title"] {{
-        color: {COLOR_ACCENT};
+        color: #c8c8c8;
         font-weight: 700;
+        font-size: 20pt;
+        letter-spacing: 5px;
+    }}
+
+    QLabel[role="banner-sep"] {{
+        color: {COLOR_ACCENT_DIM};
         font-size: 16pt;
-        letter-spacing: 3px;
+        font-weight: 100;
+        padding: 0 6px;
     }}
 
     QLabel[role="banner-tag"] {{
         color: {COLOR_TEXT_MUTED};
         font-size: 8pt;
+        font-weight: 600;
         letter-spacing: 1px;
     }}
 
@@ -66,6 +120,22 @@ def build_stylesheet():
         background-color: {COLOR_ACCENT_DIM};
         max-height: 1px;
         min-height: 1px;
+    }}
+
+    /* ---- Donate (Ko-fi) ------------------------------------------------
+       Flat, text-only button in the status bar -- same treatment Echo
+       Audio Converter uses for its own Ko-fi link. */
+    QPushButton#donateBtn {{
+        background: transparent;
+        border: none;
+        color: {COLOR_ACCENT};
+        font-weight: 600;
+        letter-spacing: 1px;
+        padding: 2px 8px;
+    }}
+    QPushButton#donateBtn:hover {{
+        color: #9dd35a;
+        text-decoration: underline;
     }}
 
     /* ---- Buttons ----------------------------------------------------- */
@@ -196,26 +266,14 @@ def build_stylesheet():
         background-color: {COLOR_ACCENT_DIM};
     }}
     QSpinBox::up-arrow {{
-        image: none;
-        width: 0;
-        height: 0;
-        border-left: 3px solid transparent;
-        border-right: 3px solid transparent;
-        border-bottom: 5px solid {COLOR_TEXT};
+        image: url({SPIN_UP_ARROW});
+        width: 8px;
+        height: 8px;
     }}
     QSpinBox::down-arrow {{
-        image: none;
-        width: 0;
-        height: 0;
-        border-left: 3px solid transparent;
-        border-right: 3px solid transparent;
-        border-top: 5px solid {COLOR_TEXT};
-    }}
-    QSpinBox::up-arrow:disabled, QSpinBox::up-arrow:off {{
-        border-bottom-color: {COLOR_TEXT_MUTED};
-    }}
-    QSpinBox::down-arrow:disabled, QSpinBox::down-arrow:off {{
-        border-top-color: {COLOR_TEXT_MUTED};
+        image: url({SPIN_DOWN_ARROW});
+        width: 8px;
+        height: 8px;
     }}
 
     /* ---- Log / status strip -------------------------------------------- */

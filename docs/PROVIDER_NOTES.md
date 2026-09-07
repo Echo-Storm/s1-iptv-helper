@@ -1,4 +1,9 @@
-# Provider notes — blueonesuperoceanhere.com (Xtream Codes)
+# Provider notes — Xtream Codes
+
+This app is written against one specific Xtream Codes reseller and doesn't
+name it here on purpose (the server URL is a config value, not something
+to publicize) -- everything below applies to any Xtream Codes-compatible
+service, not just this one.
 
 Carried forward from the old tool's `M3U_MAKER_NOTES.md` (Kodi
 `custom/IPTV` folder) and expanded. Read this before writing any code that
@@ -84,7 +89,8 @@ via `get.php?...&type=m3u_plus&output=ts`:
 
 ## Credentials
 
-`https://blueonesuperoceanhere.com`, this account's username/password live
-in `config.json` (gitignored — see `config.example.json` for the shape).
-Do not hardcode them directly in any tracked `.py` file — that was the old
-tool's approach and is exactly the anti-pattern this rebuild should fix.
+The server URL and this account's username/password live in `config.json`
+(gitignored — see `config.example.json` for the shape). Do not hardcode
+them directly in any tracked `.py` file, or name the actual server
+anywhere tracked — that was the old tool's approach and is exactly the
+anti-pattern this rebuild should fix.

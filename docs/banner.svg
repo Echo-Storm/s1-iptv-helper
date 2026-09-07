@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 140" width="1200" height="140" role="img" aria-label="S1 IPTV Helper">
+  <defs>
+    <style>
+      .bg { fill: #1f1f1f; }
+      .border-top { fill: #7cb342; }
+      .border-bottom { fill: #7cb342; }
+      .accent-line { stroke: #4a6b28; stroke-width: 2; }
+      .sep { fill: #4a6b28; font-family: "Segoe UI", Arial, sans-serif; font-size: 40px; font-weight: 200; }
+      .title { fill: #c8c8c8; font-family: "Segoe UI", Arial, sans-serif; font-size: 46px; font-weight: 800; letter-spacing: 10px; }
+      .tag { fill: #999999; font-family: "Segoe UI", Arial, sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 3px; }
+      .tag-accent { fill: #7cb342; font-family: "Segoe UI", Arial, sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 3px; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="140"/>
+  <rect class="border-top" x="0" y="0" width="1200" height="3"/>
+  <rect class="border-bottom" x="0" y="135" width="1200" height="5"/>
+
+  <text class="tag-accent" x="36" y="76" text-anchor="start">v0.6.1</text>
+  <line class="accent-line" x1="110" y1="70" x2="268" y2="70"/>
+  <text class="sep" x="284" y="86" text-anchor="middle">|</text>
+
+  <text class="title" x="600" y="86" text-anchor="middle">S1 IPTV HELPER</text>
+
+  <text class="sep" x="916" y="86" text-anchor="middle">|</text>
+  <line class="accent-line" x1="932" y1="70" x2="1090" y2="70"/>
+  <text class="tag" x="1164" y="76" text-anchor="end">ECHOSTORM EDITION</text>
+
+  <text class="tag" x="600" y="112" text-anchor="middle" style="letter-spacing:2px;">
+    XTREAM CODES CATEGORY ORGANIZER &#8226; LIVE TV &#183; ON DEMAND &#183; LOCALS
+  </text>
+</svg>
