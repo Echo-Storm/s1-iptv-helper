@@ -157,8 +157,19 @@ class CategoryTab(QWidget):
         left_layout.addWidget(self.tree_filter_edit)
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(["Category / Subcategory / Raw name"])
+        self.tree.setSelectionMode(QTreeWidget.SelectionMode.ExtendedSelection)
         self.tree.itemChanged.connect(self._on_tree_item_changed)
         left_layout.addWidget(self.tree)
+
+        move_row = QHBoxLayout()
+        move_row.addWidget(QLabel("Select raw names above, pick a destination on the right, then:"))
+        move_row.addStretch(1)
+        move_selected_btn = QPushButton("Move Selected →")
+        move_selected_btn.setProperty('role', 'primary')
+        move_selected_btn.clicked.connect(self._move_selected_tree_items)
+        move_row.addWidget(move_selected_btn)
+        left_layout.addLayout(move_row)
+
         splitter.addWidget(left)
 
         # ---- Right: export preview + unassigned + stale ----
@@ -475,6 +486,39 @@ class CategoryTab(QWidget):
         self.refresh_tree()
         self._refresh_category_options()
         self.log(f"Assigned {len(selected)} {self.content_type} categories to "
+                 f"{category_name} → {subcategory_name}")
+
+    def _move_selected_tree_items(self):
+        """
+        Reassign already-assigned raw categories to a different
+        category/subcategory, selected directly in the tree -- the only
+        way to reorganize the taxonomy before this was editing
+        data/taxonomy.seed.json by hand and relying on the auto-sync to
+        carry the move into taxonomy.json. Category/subcategory rows in
+        the selection are ignored (only raw-name leaves have anything to
+        move); reuses the same destination combos as the Unassigned
+        "Assign" flow just below.
+        """
+        category_name = self.category_combo.currentText().strip()
+        subcategory_name = self.subcategory_combo.currentText().strip()
+        if not category_name or not subcategory_name:
+            QMessageBox.warning(self, "Move", "Pick (or type) both a destination category and subcategory first.")
+            return
+        raw_names = [
+            item.data(0, RAW_NAME_ROLE) for item in self.tree.selectedItems()
+            if item.data(0, RAW_NAME_ROLE) is not None
+        ]
+        if not raw_names:
+            QMessageBox.information(
+                self, "Move", "Select one or more raw names in the tree first "
+                "(category/subcategory rows don't have anything to move)."
+            )
+            return
+        for raw in raw_names:
+            self.store.assign(self.content_type, raw, category_name, subcategory_name)
+        self.refresh_tree()
+        self._refresh_category_options()
+        self.log(f"Moved {len(raw_names)} {self.content_type} raw categories to "
                  f"{category_name} → {subcategory_name}")
 
     def _unassign_selected_stale(self):
