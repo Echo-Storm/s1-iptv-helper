@@ -79,6 +79,31 @@ class ExportWorker(QThread):
             self.failed.emit(traceback.format_exc(limit=3))
 
 
+class CountWorker(QThread):
+    """Same fetch cost as an export (one API call per included raw category)
+    but doesn't write anything -- for previewing scale before committing."""
+    succeeded = pyqtSignal(int, int)  # channel_count, locals_channel_count
+    failed = pyqtSignal(str)
+
+    def __init__(self, store, export_store, locals_store):
+        super().__init__()
+        self.store = store
+        self.export_store = export_store
+        self.locals_store = locals_store
+
+    def run(self):
+        try:
+            client = XtreamClient.from_config()
+            count, locals_count = export_module.count_channels(
+                self.store, self.export_store, self.locals_store, client
+            )
+            self.succeeded.emit(count, locals_count)
+        except ConfigError as e:
+            self.failed.emit(str(e))
+        except Exception:
+            self.failed.emit(traceback.format_exc(limit=3))
+
+
 def _banner_line():
     line = QFrame()
     line.setProperty('role', 'banner-line')
@@ -518,6 +543,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(save_btn)
 
         layout.addWidget(_section_label("Export"))
+        self.count_btn = QPushButton("Count Channels")
+        self.count_btn.clicked.connect(self._count_channels)
+        layout.addWidget(self.count_btn)
         self.export_btn = QPushButton("Export Live M3U...")
         self.export_btn.setProperty('role', 'primary')
         self.export_btn.clicked.connect(self._export_m3u)
@@ -549,6 +577,25 @@ class MainWindow(QMainWindow):
         self.refresh_categories_btn.setEnabled(True)
         self._log(f"Fetch failed: {message.splitlines()[-1] if message else message}")
         QMessageBox.critical(self, "Fetch failed", message)
+
+    def _count_channels(self):
+        self.count_btn.setEnabled(False)
+        self._log("Counting channels for the current selection...")
+        self._count_worker = CountWorker(self.store, self.export_store, self.locals_selection_store)
+        self._count_worker.succeeded.connect(self._on_count_succeeded)
+        self._count_worker.failed.connect(self._on_count_failed)
+        self._count_worker.start()
+
+    def _on_count_succeeded(self, count, locals_count):
+        self.count_btn.setEnabled(True)
+        message = f"Current selection totals {count} channels ({locals_count} from Locals)"
+        self._log(message)
+        QMessageBox.information(self, "Channel Count", message)
+
+    def _on_count_failed(self, message):
+        self.count_btn.setEnabled(True)
+        self._log(f"Count failed: {message.splitlines()[-1] if message else message}")
+        QMessageBox.critical(self, "Count failed", message)
 
     def _export_m3u(self):
         cfg = load_config_or_blank()

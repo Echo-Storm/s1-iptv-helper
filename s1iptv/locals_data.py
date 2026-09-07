@@ -94,7 +94,8 @@ def fetch_locals(client, raw_category_names):
     """
     Fetch every stream in the given raw live categories and group by state.
 
-    Returns {state_code_or_'OTHER': [{'name', 'stream_id', 'category_name'}, ...]}
+    Returns {state_code_or_'OTHER': [{'name', 'stream_id', 'category_name',
+    'tvg_id', 'stream_icon'}, ...]}
     """
     live_cats = {c['category_name'].strip().upper(): c['category_id'] for c in client.get_live_categories()}
     grouped = {}
@@ -109,6 +110,8 @@ def fetch_locals(client, raw_category_names):
                 'name': name,
                 'stream_id': stream.get('stream_id'),
                 'category_name': raw_name,
+                'tvg_id': stream.get('epg_channel_id', ''),
+                'stream_icon': stream.get('stream_icon', ''),
             })
     return grouped
 
