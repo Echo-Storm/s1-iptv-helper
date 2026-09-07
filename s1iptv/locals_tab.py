@@ -11,23 +11,71 @@ import traceback
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QListWidget,
-    QListWidgetItem, QSplitter, QLineEdit, QMessageBox,
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton,
+    QListWidget, QListWidgetItem, QSplitter, QLineEdit, QMessageBox,
+    QDialog, QCheckBox, QDialogButtonBox,
 )
 
 from .locals_data import (
     find_locals_raw_categories, fetch_locals, LocalsSelectionStore,
-    OTHER_BUCKET, DEFAULT_SELECTED_STATES,
+    OTHER_BUCKET, ALL_STATES,
 )
 from .xtream_client import XtreamClient, ConfigError
 
 STREAM_ID_ROLE = Qt.ItemDataRole.UserRole
+STATE_COLUMNS = 8
 
 
 def _section_label(text):
     lbl = QLabel(text)
     lbl.setProperty('role', 'section')
     return lbl
+
+
+class SetDefaultsDialog(QDialog):
+    """Lets the user pick which states "Defaults" selects, instead of a
+    hardcoded pair baked into the code."""
+
+    def __init__(self, current_defaults, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Set Default States")
+        self.resize(520, 320)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("States selected here are what \"Defaults\" applies on the Locals tab."))
+
+        toolbar = QHBoxLayout()
+        all_btn = QPushButton("Select All")
+        all_btn.clicked.connect(lambda: self._set_all(True))
+        toolbar.addWidget(all_btn)
+        none_btn = QPushButton("Select None")
+        none_btn.clicked.connect(lambda: self._set_all(False))
+        toolbar.addWidget(none_btn)
+        toolbar.addStretch(1)
+        layout.addLayout(toolbar)
+
+        grid = QGridLayout()
+        self.checkboxes = {}
+        for idx, (code, name) in enumerate(ALL_STATES):
+            cb = QCheckBox(code)
+            cb.setToolTip(name)
+            cb.setChecked(code in current_defaults)
+            self.checkboxes[code] = cb
+            grid.addWidget(cb, idx // STATE_COLUMNS, idx % STATE_COLUMNS)
+        layout.addLayout(grid)
+        layout.addStretch(1)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _set_all(self, checked):
+        for cb in self.checkboxes.values():
+            cb.setChecked(checked)
+
+    def selected_states(self):
+        return {code for code, cb in self.checkboxes.items() if cb.isChecked()}
 
 
 class LocalsFetchWorker(QThread):
@@ -71,9 +119,12 @@ class LocalsTab(QWidget):
         deselect_all_btn = QPushButton("Deselect All")
         deselect_all_btn.clicked.connect(self._deselect_all)
         toolbar.addWidget(deselect_all_btn)
-        defaults_btn = QPushButton("Defaults (IN, MI)")
-        defaults_btn.clicked.connect(self._select_defaults)
-        toolbar.addWidget(defaults_btn)
+        self.defaults_btn = QPushButton()
+        self.defaults_btn.clicked.connect(self._select_defaults)
+        toolbar.addWidget(self.defaults_btn)
+        set_defaults_btn = QPushButton("Set Defaults...")
+        set_defaults_btn.clicked.connect(self._open_set_defaults_dialog)
+        toolbar.addWidget(set_defaults_btn)
         save_btn = QPushButton("Save Selection")
         save_btn.clicked.connect(self._save_selection)
         toolbar.addWidget(save_btn)
@@ -120,6 +171,22 @@ class LocalsTab(QWidget):
 
         self.status_label = QLabel("Click \"Refresh Locals\" to fetch channels.")
         root.addWidget(self.status_label)
+
+        self._refresh_defaults_button_label()
+
+    # ------------------------------------------------------------------
+    def _refresh_defaults_button_label(self):
+        states = sorted(self.selection_store.default_states)
+        label = ", ".join(states) if states else "none set"
+        self.defaults_btn.setText(f"Defaults ({label})")
+
+    def _open_set_defaults_dialog(self):
+        dialog = SetDefaultsDialog(self.selection_store.default_states, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            new_defaults = dialog.selected_states()
+            self.selection_store.set_default_states(new_defaults)
+            self._refresh_defaults_button_label()
+            self.log(f"Default states set to: {', '.join(sorted(new_defaults)) or '(none)'}")
 
     # ------------------------------------------------------------------
     def refresh(self):
@@ -247,15 +314,16 @@ class LocalsTab(QWidget):
         self.log("Deselected all local channels")
 
     def _select_defaults(self):
+        defaults = self.selection_store.default_states
         for state, channels in self.grouped.items():
-            include = state in DEFAULT_SELECTED_STATES
+            include = state in defaults
             for ch in channels:
                 self.selection_store.set_selected(ch['stream_id'], include)
         self._rebuild_state_list()
         state = self._current_state()
         if state:
             self._populate_channel_list(state)
-        self.log(f"Selected defaults: {', '.join(sorted(DEFAULT_SELECTED_STATES))}")
+        self.log(f"Selected defaults: {', '.join(sorted(defaults)) or '(none)'}")
 
     def _save_selection(self):
         self.selection_store.save()

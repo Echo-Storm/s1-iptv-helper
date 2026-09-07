@@ -19,8 +19,28 @@ US_STATE_CODES = {
     'WI', 'WY', 'DC',
 }
 
+ALL_STATES = [
+    ('AL', 'Alabama'), ('AK', 'Alaska'), ('AZ', 'Arizona'), ('AR', 'Arkansas'),
+    ('CA', 'California'), ('CO', 'Colorado'), ('CT', 'Connecticut'), ('DE', 'Delaware'),
+    ('FL', 'Florida'), ('GA', 'Georgia'), ('HI', 'Hawaii'), ('ID', 'Idaho'),
+    ('IL', 'Illinois'), ('IN', 'Indiana'), ('IA', 'Iowa'), ('KS', 'Kansas'),
+    ('KY', 'Kentucky'), ('LA', 'Louisiana'), ('ME', 'Maine'), ('MD', 'Maryland'),
+    ('MA', 'Massachusetts'), ('MI', 'Michigan'), ('MN', 'Minnesota'), ('MS', 'Mississippi'),
+    ('MO', 'Missouri'), ('MT', 'Montana'), ('NE', 'Nebraska'), ('NV', 'Nevada'),
+    ('NH', 'New Hampshire'), ('NJ', 'New Jersey'), ('NM', 'New Mexico'), ('NY', 'New York'),
+    ('NC', 'North Carolina'), ('ND', 'North Dakota'), ('OH', 'Ohio'), ('OK', 'Oklahoma'),
+    ('OR', 'Oregon'), ('PA', 'Pennsylvania'), ('RI', 'Rhode Island'), ('SC', 'South Carolina'),
+    ('SD', 'South Dakota'), ('TN', 'Tennessee'), ('TX', 'Texas'), ('UT', 'Utah'),
+    ('VT', 'Vermont'), ('VA', 'Virginia'), ('WA', 'Washington'), ('WV', 'West Virginia'),
+    ('WI', 'Wisconsin'), ('WY', 'Wyoming'), ('DC', 'Washington DC'),
+]
+
 OTHER_BUCKET = 'OTHER'
-DEFAULT_SELECTED_STATES = {'IN', 'MI'}
+# Fallback only -- used the first time the app runs, before the user has ever
+# saved a preferred default via the Locals tab's "Set Defaults..." dialog.
+# Not meant to be hardcoded/assumed correct for anyone but the original user;
+# LocalsSelectionStore.default_states is the actual source of truth.
+FALLBACK_DEFAULT_STATES = {'IN', 'MI'}
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(APP_DIR)
@@ -70,11 +90,13 @@ def fetch_locals(client, raw_category_names):
 
 
 class LocalsSelectionStore:
-    """Persists which stream_ids are selected for the M3U export."""
+    """Persists which stream_ids are selected for the M3U export, plus the
+    user's preferred default state set for the "Defaults" quick-select."""
 
     def __init__(self, path=DEFAULT_SELECTION_PATH):
         self.path = path
         self.selected_ids = set()
+        self.default_states = set(FALLBACK_DEFAULT_STATES)
 
     def load(self):
         if os.path.exists(self.path):
@@ -82,13 +104,18 @@ class LocalsSelectionStore:
                 with open(self.path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                 self.selected_ids = set(data.get('selected_stream_ids', []))
+                if 'default_states' in data:
+                    self.default_states = set(data['default_states'])
             except (json.JSONDecodeError, OSError):
                 self.selected_ids = set()
         return self
 
     def save(self):
         with open(self.path, 'w', encoding='utf-8') as f:
-            json.dump({'selected_stream_ids': sorted(self.selected_ids)}, f, indent=2)
+            json.dump({
+                'selected_stream_ids': sorted(self.selected_ids),
+                'default_states': sorted(self.default_states),
+            }, f, indent=2)
 
     def is_selected(self, stream_id):
         return stream_id in self.selected_ids
@@ -98,3 +125,7 @@ class LocalsSelectionStore:
             self.selected_ids.add(stream_id)
         else:
             self.selected_ids.discard(stream_id)
+
+    def set_default_states(self, states):
+        self.default_states = set(states)
+        self.save()
