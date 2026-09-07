@@ -223,10 +223,54 @@ gitignored `config.json`.
 Version bumped 0.6.0 -> 0.6.1. Pushed to GitHub as a public repo,
 `s1-iptv-helper`.
 
+README.md trimmed to public-facing content right after -- moved the
+personal migration history ("Why this exists") and sibling-app branding
+details out of the hero section; a Features list replaced the "Status"
+progress-report framing.
+
+### Packaging + first release (2026-09-07)
+
+Added Windows exe packaging via PyInstaller, matching
+`EchoAudioConverter.spec`'s onedir approach:
+- `run_s1_iptv_helper.py` -- a thin entry point PyInstaller can execute
+  directly. `s1iptv/main.py` itself can't be that entry point: it uses
+  relative imports (`from .theme import ...`), which only resolve when the
+  module is imported normally as part of the package, not when executed
+  directly as `__main__` (true for both plain Python and PyInstaller's
+  bootloader).
+- `S1IptvHelper.spec` -- onedir build, bundles `data/taxonomy.seed.json`
+  and the two spinbox arrow PNGs via explicit `datas` entries (PyInstaller
+  can't discover non-Python files referenced only by a file path, not an
+  import).
+- **Found and fixed a real bug before it ever shipped**: every module that
+  computed "the app's root directory" (`category_store.py`,
+  `export.py`, `export_selection.py`, `locals_data.py`, `logger.py`,
+  `xtream_client.py`) did it independently via
+  `os.path.dirname(os.path.dirname(os.path.abspath(__file__)))`. That's
+  correct from source, but in a frozen build `__file__` resolves inside
+  PyInstaller's `_internal\` extraction folder, not next to the real
+  `.exe` -- so personal data (`config.json`, `taxonomy.json`, the log,
+  backups) would have been written into `_internal\` instead of sitting
+  next to the exe where a user would look for it. Caught by actually
+  building and running the exe, then checking where the files landed --
+  not by reasoning about the code alone. Fixed with one shared
+  `s1iptv/paths.py::app_root()` (checks `sys.frozen`/`sys.executable`),
+  replacing all 6 independent copies -- matches Echo Audio Converter's own
+  `core/paths.py`, which solves the identical problem the identical way.
+  Verified end to end: built the exe, ran it, confirmed `taxonomy.json` /
+  the log / `backups/` all landed next to `S1IptvHelper.exe`, not in
+  `_internal\`.
+- Also fixed `load_config()`'s "no config.json" error message, which told
+  every reader to "copy config.example.json" -- true from source, useless
+  advice for an exe-only user with no source checkout. Now points at the
+  Settings tab first.
+- README: added Download (points at the GitHub Releases page) and
+  Building the EXE sections.
+
+Version bumped 0.6.1 -> 0.7.0 -- first packaged release. Tagged and
+published as a GitHub Release with `S1IptvHelper-v0.7.0-win64.zip`
+attached. Repo topics added for discoverability.
+
 ## Later, can wait
 
-- Packaging: PyInstaller `.spec` + `launch.bat`-driven venv bootstrap,
-  matching the sibling apps, once the feature set stabilizes.
-- Decide on a remote (private GitHub repo) once the app is far enough
-  along to be worth pushing — local-only on E: for now, single point of
-  failure if that drive has a problem.
+(nothing currently)

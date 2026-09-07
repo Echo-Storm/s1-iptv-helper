@@ -16,7 +16,7 @@
   <rect class="border-top" x="0" y="0" width="1200" height="3"/>
   <rect class="border-bottom" x="0" y="135" width="1200" height="5"/>
 
-  <text class="tag-accent" x="36" y="76" text-anchor="start">v0.6.1</text>
+  <text class="tag-accent" x="36" y="76" text-anchor="start">v0.7.0</text>
   <line class="accent-line" x1="110" y1="70" x2="268" y2="70"/>
   <text class="sep" x="284" y="86" text-anchor="middle">|</text>
 

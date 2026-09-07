@@ -13,7 +13,9 @@ from urllib.parse import urlencode
 
 import requests
 
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config.json')
+from .paths import app_root
+
+CONFIG_PATH = os.path.join(app_root(), 'config.json')
 
 MAX_RETRIES = 3
 RETRY_BACKOFF_BASE = 1.0  # seconds; doubles each retry (1s, 2s, ...)
@@ -32,8 +34,9 @@ class NetworkError(RuntimeError):
 def load_config(path=CONFIG_PATH):
     if not os.path.exists(path):
         raise ConfigError(
-            f"Missing {path}. Copy config.example.json to config.json and "
-            f"fill in your IPTV username/password."
+            f"Missing {path}. Enter your IPTV server/username/password in the "
+            f"Settings tab and click Save (or, running from source, copy "
+            f"config.example.json to config.json)."
         )
     with open(path, 'r', encoding='utf-8') as f:
         cfg = json.load(f)

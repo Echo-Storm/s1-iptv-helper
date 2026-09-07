@@ -11,6 +11,8 @@ state grouping is done by parsing the channel NAME, never the category name.
 import json
 import os
 
+from .paths import app_root
+
 US_STATE_CODES = {
     'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID',
     'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS',
@@ -42,8 +44,7 @@ OTHER_BUCKET = 'OTHER'
 # LocalsSelectionStore.default_states is the actual source of truth.
 FALLBACK_DEFAULT_STATES = {'IN', 'MI'}
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.dirname(APP_DIR)
+ROOT_DIR = app_root()
 DEFAULT_SELECTION_PATH = os.path.join(ROOT_DIR, 'locals_selection.json')
 
 

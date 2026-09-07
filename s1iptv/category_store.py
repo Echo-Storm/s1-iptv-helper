@@ -24,8 +24,12 @@ import json
 import os
 import shutil
 
+from .paths import app_root
+
+# APP_DIR stays __file__-relative (not app_root()) -- data/taxonomy.seed.json
+# is bundled, read-only package data, not a personal file next to the exe.
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.dirname(APP_DIR)
+ROOT_DIR = app_root()
 SEED_PATH = os.path.join(APP_DIR, 'data', 'taxonomy.seed.json')
 DEFAULT_TAXONOMY_PATH = os.path.join(ROOT_DIR, 'taxonomy.json')
 BACKUP_DIR = os.path.join(ROOT_DIR, 'backups')

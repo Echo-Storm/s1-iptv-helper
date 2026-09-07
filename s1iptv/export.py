@@ -32,9 +32,10 @@ import re
 from .locals_data import (
     find_locals_raw_categories, fetch_locals, is_locals_subcategory, LOCALS_OWN_CATEGORY_NAME,
 )
+from .paths import app_root
 
 KODI_IPTV_DEFAULT_DIR = os.path.expandvars(r'%APPDATA%\Kodi\custom\IPTV')
-_APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_APP_ROOT = app_root()
 
 # Default number of trailing blank slots to keep past the last real event in
 # a category, so an event scheduled between now and the next export already

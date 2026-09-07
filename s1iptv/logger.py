@@ -7,8 +7,9 @@ file at the repo root, overwritten fresh each run.
 import logging
 import os
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.dirname(APP_DIR)
+from .paths import app_root
+
+ROOT_DIR = app_root()
 LOG_PATH = os.path.join(ROOT_DIR, 'S1_IPTV_Helper_Log.txt')
 
 _logger = None

@@ -23,7 +23,7 @@ from .logger import get_logger
 from .settings_tab import SettingsTab
 from .xtream_client import XtreamClient, ConfigError, NetworkError, load_config_or_blank, save_config
 
-APP_VERSION = "0.6.1"
+APP_VERSION = "0.7.0"
 
 # Same Ko-fi page already used by the sibling apps (Echo Audio Converter,
 # TorBox Manager EchoStorm Edition) -- see their donate buttons.

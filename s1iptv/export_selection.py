@@ -12,8 +12,9 @@ they haven't excluded anything yet.
 import json
 import os
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.dirname(APP_DIR)
+from .paths import app_root
+
+ROOT_DIR = app_root()
 DEFAULT_PATH = os.path.join(ROOT_DIR, 'export_selection.json')
 
 CONTENT_TYPES = ('live', 'on_demand')

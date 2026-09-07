@@ -48,7 +48,14 @@ specifically.
 |---|---|
 | ![Locals tab](docs/screenshots/locals-tab.png) | ![Settings tab](docs/screenshots/settings-tab.png) |
 
-## Setup
+## Download
+
+Prebuilt Windows binary: see the [Releases page](../../releases/latest) —
+download `S1IptvHelper-vX.Y.Z-win64.zip`, extract it anywhere, and run
+`S1IptvHelper.exe`. No Python install required. Enter your provider's
+server/username/password in the Settings tab on first launch.
+
+## Running from source
 
 1. Install Python 3.10+.
 2. Copy `config.example.json` to `config.json` and fill in your IPTV
@@ -58,6 +65,23 @@ specifically.
 
 `config.json` is gitignored — it holds your account's plaintext credentials
 and is never committed.
+
+## Building the EXE
+
+A standalone build (no Python install required to run it) via
+[PyInstaller](https://pyinstaller.org/), configured in `S1IptvHelper.spec`:
+
+```bash
+venv\Scripts\pip install pyinstaller
+venv\Scripts\pyinstaller S1IptvHelper.spec --clean
+```
+
+Output lands in `dist\S1IptvHelper\` — that whole folder is the
+distributable (onedir build: `S1IptvHelper.exe` + a `_internal\` folder of
+PyQt6/Python runtime files next to it). Zip the folder to hand it to
+someone; there's nothing else to install. Personal data files
+(`config.json`, `taxonomy.json`, the log, backups) are written next to the
+`.exe`, not inside `_internal\` — see `s1iptv/paths.py`.
 
 ## Testing
 
@@ -71,13 +95,16 @@ Offscreen PyQt6 `unittest` tests, no extra dependency — see
 ## Project layout
 
 ```
-s1iptv/             application package
-  main.py           entry point
-  theme.py          shared QSS (dark/green theme)
-  xtream_client.py  Xtream Codes API client (live + VOD categories/streams)
-  category_store.py category -> subcategory taxonomy model, JSON-backed
-  main_window.py    main window / UI
-docs/                design & maintenance documentation
-config.example.json  credential template (tracked)
-config.json           real credentials (gitignored)
+s1iptv/                  application package
+  main.py                entry point
+  paths.py               resolves personal-data paths (source vs. frozen exe)
+  theme.py                shared QSS (dark/green theme)
+  xtream_client.py        Xtream Codes API client (live + VOD categories/streams)
+  category_store.py       category -> subcategory taxonomy model, JSON-backed
+  main_window.py          main window / UI
+run_s1_iptv_helper.py     PyInstaller entry point (see Building the EXE)
+S1IptvHelper.spec         PyInstaller build config
+docs/                     design & maintenance documentation
+config.example.json       credential template (tracked)
+config.json               real credentials (gitignored)
 ```
