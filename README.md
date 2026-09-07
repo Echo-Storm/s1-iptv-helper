@@ -38,6 +38,15 @@ history and the live/VOD split that shapes this app's design.
 `config.json` is gitignored — it holds this account's plaintext credentials
 and is never committed.
 
+## Testing
+
+```bash
+venv\Scripts\python -m unittest discover -s tests -v
+```
+
+Offscreen PyQt6 `unittest` tests, no extra dependency — see
+[`tests/README.md`](tests/README.md) for what's covered.
+
 ## Design language
 
 This app follows the same dark/green "Echo/S1" house style as its sibling
