@@ -20,7 +20,7 @@ from .locals_data import (
 from .locals_tab import LocalsTab
 from .logger import get_logger
 from .settings_tab import SettingsTab
-from .xtream_client import XtreamClient, ConfigError, load_config_or_blank, save_config
+from .xtream_client import XtreamClient, ConfigError, NetworkError, load_config_or_blank, save_config
 
 APP_VERSION = "0.5.0"
 
@@ -43,6 +43,8 @@ class FetchCategoriesWorker(QThread):
                 'on_demand': sorted(set(vod_cats) | set(series_cats)),
             })
         except ConfigError as e:
+            self.failed.emit(str(e))
+        except NetworkError as e:
             self.failed.emit(str(e))
         except Exception:
             self.failed.emit(traceback.format_exc(limit=3))
@@ -73,6 +75,8 @@ class ExportWorker(QThread):
             self.succeeded.emit(self.path, count, locals_count)
         except ConfigError as e:
             self.failed.emit(str(e))
+        except NetworkError as e:
+            self.failed.emit(str(e))
         except OSError as e:
             self.failed.emit(f"Could not write {self.path}: {e}")
         except Exception:
@@ -99,6 +103,8 @@ class CountWorker(QThread):
             )
             self.succeeded.emit(count, locals_count)
         except ConfigError as e:
+            self.failed.emit(str(e))
+        except NetworkError as e:
             self.failed.emit(str(e))
         except Exception:
             self.failed.emit(traceback.format_exc(limit=3))

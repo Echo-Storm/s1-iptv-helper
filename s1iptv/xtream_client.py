@@ -8,14 +8,24 @@ hardcoded here (see docs/PROVIDER_NOTES.md for why that matters).
 
 import json
 import os
+import time
 from urllib.parse import urlencode
 
 import requests
 
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config.json')
 
+MAX_RETRIES = 3
+RETRY_BACKOFF_BASE = 1.0  # seconds; doubles each retry (1s, 2s, ...)
+
 
 class ConfigError(RuntimeError):
+    pass
+
+
+class NetworkError(RuntimeError):
+    """A request ultimately failed after retries -- message is meant to be
+    shown to the user as-is, not a traceback."""
     pass
 
 
@@ -86,13 +96,47 @@ class XtreamClient:
         return cls(cfg['server'], cfg['username'], cfg['password'])
 
     def _api_get(self, action, extra_params=None):
+        """
+        Calls player_api.php with basic retry-with-backoff for transient
+        failures (timeout, connection drop, 5xx, an unparseable response),
+        and raises NetworkError with a plain-language message instead of
+        letting a raw requests/JSON exception bubble up as a traceback in
+        the UI. A 4xx response (bad credentials, bad request) fails
+        immediately -- retrying won't fix that.
+        """
         params = {'username': self.username, 'password': self.password, 'action': action}
         if extra_params:
             params.update(extra_params)
         url = f"{self.api_url}?{urlencode(params)}"
-        resp = requests.get(url, headers={'User-Agent': 'S1IptvHelper/1.0'}, timeout=self.timeout)
-        resp.raise_for_status()
-        return resp.json()
+
+        last_error = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                resp = requests.get(url, headers={'User-Agent': 'S1IptvHelper/1.0'}, timeout=self.timeout)
+                resp.raise_for_status()
+                try:
+                    return resp.json()
+                except ValueError:
+                    last_error = NetworkError(
+                        f"The server didn't return valid data for '{action}'. It may be down, or "
+                        f"your username/password may be wrong."
+                    )
+            except requests.exceptions.HTTPError as e:
+                status = e.response.status_code if e.response is not None else 0
+                last_error = NetworkError(f"Server returned an error (HTTP {status}) for '{action}'.")
+                if 400 <= status < 500:
+                    raise last_error from e  # client error -- retrying won't help
+            except requests.exceptions.Timeout:
+                last_error = NetworkError(f"Timed out waiting for the server ('{action}'). It may be slow or down.")
+            except requests.exceptions.ConnectionError:
+                last_error = NetworkError(f"Couldn't connect to the server ('{action}'). Check your internet connection.")
+            except requests.exceptions.RequestException as e:
+                last_error = NetworkError(f"Network error during '{action}': {e}")
+
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_BACKOFF_BASE * (2 ** attempt))
+
+        raise last_error
 
     # ---- Live -------------------------------------------------------
     def get_live_categories(self):

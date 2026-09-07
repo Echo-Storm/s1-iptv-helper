@@ -20,7 +20,7 @@ from .locals_data import (
     find_locals_raw_categories, find_locals_parent_category_name, fetch_locals,
     LocalsSelectionStore, OTHER_BUCKET, ALL_STATES, LOCALS_OWN_CATEGORY_NAME,
 )
-from .xtream_client import XtreamClient, ConfigError
+from .xtream_client import XtreamClient, ConfigError, NetworkError
 
 STREAM_ID_ROLE = Qt.ItemDataRole.UserRole
 STATE_COLUMNS = 8
@@ -92,6 +92,8 @@ class LocalsFetchWorker(QThread):
             grouped = fetch_locals(client, self.raw_category_names)
             self.succeeded.emit(grouped)
         except ConfigError as e:
+            self.failed.emit(str(e))
+        except NetworkError as e:
             self.failed.emit(str(e))
         except Exception:
             self.failed.emit(traceback.format_exc(limit=3))
