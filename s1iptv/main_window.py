@@ -14,7 +14,7 @@ from . import export as export_module
 from .category_store import CategoryStore
 from .export_selection import ExportSelectionStore
 from .locals_data import (
-    LocalsSelectionStore, find_locals_raw_categories, find_locals_parent_category_name,
+    LocalsSelectionStore, find_locals_parent_category_name,
     is_locals_subcategory, OTHER_BUCKET, LOCALS_OWN_CATEGORY_NAME,
 )
 from .locals_tab import LocalsTab
