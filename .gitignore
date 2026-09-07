@@ -30,6 +30,9 @@ S1_IPTV_Helper_Log.txt
 # Cached provider category/stream dumps (regenerate via the app instead)
 cache/
 
+# Rotating taxonomy.json backups (personal data, see category_store.py)
+backups/
+
 # ---------------------------------------------------------------------------
 # PYTHON
 # ---------------------------------------------------------------------------

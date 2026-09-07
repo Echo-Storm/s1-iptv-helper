@@ -18,6 +18,8 @@ working file too, UNLESS the user already moved it themselves, in which
 case their placement wins.
 """
 
+import datetime
+import glob
 import json
 import os
 import shutil
@@ -26,6 +28,8 @@ APP_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(APP_DIR)
 SEED_PATH = os.path.join(APP_DIR, 'data', 'taxonomy.seed.json')
 DEFAULT_TAXONOMY_PATH = os.path.join(ROOT_DIR, 'taxonomy.json')
+BACKUP_DIR = os.path.join(ROOT_DIR, 'backups')
+MAX_BACKUPS = 15
 
 CONTENT_TYPES = ('live', 'on_demand')
 SNAPSHOT_KEY = '_seed_snapshot'
@@ -80,8 +84,31 @@ class CategoryStore:
         return self
 
     def save(self):
+        self._backup_before_overwrite()
         with open(self.path, 'w', encoding='utf-8') as f:
             json.dump(self.data, f, indent=2, ensure_ascii=False)
+
+    def _backup_before_overwrite(self):
+        """
+        Snapshot whatever's currently on disk into backups/ before it gets
+        overwritten -- taxonomy.json is hours of hand-curation with no undo,
+        so this is cheap insurance against a bad edit or a sync gone wrong.
+        Keeps the most recent MAX_BACKUPS copies, oldest pruned first.
+        Silently skipped if there's nothing on disk yet, or if backing up
+        fails for any reason (a permissions issue here shouldn't block the
+        save itself).
+        """
+        if not os.path.exists(self.path):
+            return
+        try:
+            os.makedirs(BACKUP_DIR, exist_ok=True)
+            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+            shutil.copyfile(self.path, os.path.join(BACKUP_DIR, f'taxonomy_{timestamp}.json'))
+            backups = sorted(glob.glob(os.path.join(BACKUP_DIR, 'taxonomy_*.json')))
+            for old in backups[:-MAX_BACKUPS]:
+                os.remove(old)
+        except OSError:
+            pass
 
     # ------------------------------------------------------------------
     # Automatic reconciliation with a changed seed
