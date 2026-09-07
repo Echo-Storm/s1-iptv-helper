@@ -6,9 +6,8 @@
         {
           "name": "General",
           "raw_categories": [
-            "USA ENTERTAINMENT", "USA KIDS", "USA NEWS", "USA SPORTS",
-            "USA MOVIE CHANNELS", "USA MUSIC CHANNELS", "Music",
-            "USA DOCUMENTARIES", "USA DISCOVERY+", "US PARAMOUNT+",
+            "USA ENTERTAINMENT", "USA KIDS", "USA NEWS",
+            "USA MOVIE CHANNELS", "USA DOCUMENTARIES", "USA DISCOVERY+",
             "USA LATIN CHANNELS", "4K CHANNELS"
           ]
         },
@@ -22,6 +21,12 @@
       ]
     },
     {
+      "name": "Music",
+      "subcategories": [
+        {"name": "General", "raw_categories": ["Music", "USA MUSIC CHANNELS"]}
+      ]
+    },
+    {
       "name": "PPV",
       "subcategories": [
         {"name": "General", "raw_categories": ["PPV - EVENTS", "PPV (BACKUP)", "PAY PER VIEW", "PAY PER VIEW #2"]}
@@ -30,29 +35,103 @@
     {
       "name": "Sports",
       "subcategories": [
-        {"name": "NFL", "raw_categories": ["USA NFL GAMES", "USA NFL TEAMS"]},
-        {"name": "NBA", "raw_categories": ["USA NBA GAMES"]},
-        {"name": "MLB", "raw_categories": ["USA MLB GAMES", "USA MiLB GAMES", "USA MLB TEAMS"]},
-        {"name": "NHL", "raw_categories": ["USA NHL GAMES"]},
-        {"name": "NCAAF", "raw_categories": ["USA NCAAF GAMES", "USA NCAAF GAMES (BACKUP)"]},
-        {"name": "NCAAB", "raw_categories": ["USA NCAAB GAMES", "USA NCAAB GAMES (BACKUP)"]},
-        {"name": "WNBA", "raw_categories": ["USA WNBA GAMES"]},
-        {"name": "MLS", "raw_categories": ["USA MLS GAMES"]},
-        {"name": "Racing", "raw_categories": ["USA RACING", "FORMULA1 TV/CAM"]},
-        {"name": "Combat", "raw_categories": ["UFC EVENTS"]},
+        {"name": "General", "raw_categories": ["USA SPORTS"]}
+      ]
+    },
+    {
+      "name": "NFL",
+      "subcategories": [
+        {"name": "General", "raw_categories": ["USA NFL GAMES", "USA NFL TEAMS"]}
+      ]
+    },
+    {
+      "name": "NBA",
+      "subcategories": [
+        {"name": "General", "raw_categories": ["USA NBA GAMES"]}
+      ]
+    },
+    {
+      "name": "MLB",
+      "subcategories": [
+        {"name": "General", "raw_categories": ["USA MLB GAMES", "USA MiLB GAMES", "USA MLB TEAMS"]}
+      ]
+    },
+    {
+      "name": "NHL",
+      "subcategories": [
+        {"name": "General", "raw_categories": ["USA NHL GAMES"]}
+      ]
+    },
+    {
+      "name": "NCAAF",
+      "subcategories": [
+        {"name": "General", "raw_categories": ["USA NCAAF GAMES", "USA NCAAF GAMES (BACKUP)"]}
+      ]
+    },
+    {
+      "name": "NCAAB",
+      "subcategories": [
+        {"name": "General", "raw_categories": ["USA NCAAB GAMES", "USA NCAAB GAMES (BACKUP)"]}
+      ]
+    },
+    {
+      "name": "WNBA",
+      "subcategories": [
+        {"name": "General", "raw_categories": ["USA WNBA GAMES"]}
+      ]
+    },
+    {
+      "name": "MLS",
+      "subcategories": [
+        {"name": "General", "raw_categories": ["USA MLS GAMES"]}
+      ]
+    },
+    {
+      "name": "Racing",
+      "subcategories": [
+        {"name": "General", "raw_categories": ["USA RACING", "FORMULA1 TV/CAM"]}
+      ]
+    },
+    {
+      "name": "Combat",
+      "subcategories": [
+        {"name": "General", "raw_categories": ["UFC EVENTS"]}
+      ]
+    },
+    {
+      "name": "INTL SPORTS",
+      "subcategories": [
         {
-          "name": "International",
+          "name": "General",
           "raw_categories": [
             "ESPN UNLIMITED EVENTS", "SKY SPORTS+ EVENTS", "CA TSN+ EVENTS",
             "CA SPORTSNET+", "SOCCER EVENTS", "TENNIS CHANNELS",
             "DAZN CANADA & UK", "PEACOCK EVENTS", "TUDN / ViX / BEIN SPORT EVENTS",
-            "American Hockey League", "UK SKY SPORTS", "UK SKY NETWORK",
+            "US PARAMOUNT+", "American Hockey League",
             "FloCOLLEGE SPORTS", "Canadian Hockey League", "PDC DARTS",
             "OPTUS SPORT EVENTS", "STAN SPORTS EVENTS", "FUBO SPORTS EVENTS",
-            "EFL - iFOLLOW", "STARHUB PREMIER SPORTS", "Scottish SPFL",
-            "UK SPORTS", "PREMIER LEAGUE TEAMS"
+            "STARHUB PREMIER SPORTS"
           ]
         }
+      ]
+    },
+    {
+      "name": "UK",
+      "subcategories": [
+        {"name": "Entertainment", "raw_categories": ["UK ENTERTAINMENT"]},
+        {
+          "name": "Sports",
+          "raw_categories": [
+            "UK SPORTS", "UK SKY SPORTS", "UK SKY NETWORK", "PREMIER LEAGUE TEAMS",
+            "EFL - iFOLLOW", "Scottish SPFL"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Adult",
+      "subcategories": [
+        {"name": "General", "raw_categories": ["FOR ADULTS"]}
       ]
     },
     {
@@ -79,10 +158,9 @@
           ]
         },
         {"name": "Europe", "raw_categories": ["FRANCE", "ITALY", "PORTUGAL", "NETHERLANDS", "ESPAÑA"]},
-        {"name": "UK", "raw_categories": ["UK ENTERTAINMENT"]},
         {"name": "Caribbean", "raw_categories": ["CARIBBEAN HUB", "CARIBBEAN / CURACAO AMP", "CUBA/MIAMI", "PUERTO RICO"]},
         {"name": "Asia Pacific", "raw_categories": ["PHILIPPINES", "AUSTRALIA"]},
-        {"name": "Other", "raw_categories": ["FOR ADULTS", "TRILLER TV", "LA CASA DE FAMOSOS 2026", "BIG BROTHER 2026"]}
+        {"name": "Other", "raw_categories": ["TRILLER TV", "LA CASA DE FAMOSOS 2026", "BIG BROTHER 2026"]}
       ]
     }
   ],
