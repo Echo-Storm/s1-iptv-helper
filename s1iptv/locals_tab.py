@@ -17,8 +17,8 @@ from PyQt6.QtWidgets import (
 )
 
 from .locals_data import (
-    find_locals_raw_categories, fetch_locals, LocalsSelectionStore,
-    OTHER_BUCKET, ALL_STATES,
+    find_locals_raw_categories, find_locals_parent_category_name, fetch_locals,
+    LocalsSelectionStore, OTHER_BUCKET, ALL_STATES, LOCALS_OWN_CATEGORY_NAME,
 )
 from .xtream_client import XtreamClient, ConfigError
 
@@ -135,6 +135,15 @@ class LocalsTab(QWidget):
         toolbar.addStretch(1)
         root.addLayout(toolbar)
 
+        export_dest_row = QHBoxLayout()
+        self.merge_checkbox = QCheckBox()
+        self.merge_checkbox.setChecked(self.selection_store.merge_into_parent)
+        self.merge_checkbox.toggled.connect(self._on_merge_toggled)
+        export_dest_row.addWidget(self.merge_checkbox)
+        export_dest_row.addStretch(1)
+        root.addLayout(export_dest_row)
+        self._refresh_merge_checkbox_label()
+
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
         left = QWidget()
@@ -192,8 +201,23 @@ class LocalsTab(QWidget):
             self._refresh_defaults_button_label()
             self.log(f"Default states set to: {', '.join(sorted(new_defaults)) or '(none)'}")
 
+    def _refresh_merge_checkbox_label(self):
+        parent = find_locals_parent_category_name(self.store) or "its parent category"
+        self.merge_checkbox.setText(
+            f'Merge into "{parent}" on export (uncheck to export as its own '
+            f'"{LOCALS_OWN_CATEGORY_NAME}" category)'
+        )
+
+    def _on_merge_toggled(self, checked):
+        self.selection_store.set_merge_into_parent(checked)
+        parent = find_locals_parent_category_name(self.store) or "its parent category"
+        dest = parent if checked else LOCALS_OWN_CATEGORY_NAME
+        self.log(f"Locals will export under \"{dest}\"")
+        self._notify_change()
+
     # ------------------------------------------------------------------
     def refresh(self):
+        self._refresh_merge_checkbox_label()
         raw_names = find_locals_raw_categories(self.store)
         if not raw_names:
             QMessageBox.information(

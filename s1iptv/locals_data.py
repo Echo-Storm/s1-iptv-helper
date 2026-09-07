@@ -53,6 +53,9 @@ def parse_state(channel_name):
     return first if first in US_STATE_CODES else None
 
 
+LOCALS_OWN_CATEGORY_NAME = 'LOCALS'
+
+
 def find_locals_raw_categories(store):
     """
     Raw provider category names tagged as locals in the taxonomy -- any
@@ -64,6 +67,16 @@ def find_locals_raw_categories(store):
             if sub['name'].strip().upper() == 'LOCALS':
                 names.extend(sub.get('raw_categories', []))
     return names
+
+
+def find_locals_parent_category_name(store):
+    """The taxonomy category that currently contains the "Locals"
+    subcategory (e.g. "USA LIVE"), or None if there isn't one yet."""
+    for cat in store.categories('live'):
+        for sub in cat.get('subcategories', []):
+            if sub['name'].strip().upper() == 'LOCALS':
+                return cat['name']
+    return None
 
 
 def fetch_locals(client, raw_category_names):
@@ -97,6 +110,12 @@ class LocalsSelectionStore:
         self.path = path
         self.selected_ids = set()
         self.default_states = set(FALLBACK_DEFAULT_STATES)
+        # True (default): exported Locals channels use their parent
+        # taxonomy category's name as group-title (USA LIVE today) -- same
+        # as every other category. False: exported Locals channels get
+        # their own group-title (LOCALS_OWN_CATEGORY_NAME) regardless of
+        # where "Locals" sits in the taxonomy.
+        self.merge_into_parent = True
 
     def load(self):
         if os.path.exists(self.path):
@@ -106,6 +125,7 @@ class LocalsSelectionStore:
                 self.selected_ids = set(data.get('selected_stream_ids', []))
                 if 'default_states' in data:
                     self.default_states = set(data['default_states'])
+                self.merge_into_parent = data.get('merge_into_parent', True)
             except (json.JSONDecodeError, OSError):
                 self.selected_ids = set()
         return self
@@ -115,7 +135,12 @@ class LocalsSelectionStore:
             json.dump({
                 'selected_stream_ids': sorted(self.selected_ids),
                 'default_states': sorted(self.default_states),
+                'merge_into_parent': self.merge_into_parent,
             }, f, indent=2)
+
+    def set_merge_into_parent(self, merge):
+        self.merge_into_parent = merge
+        self.save()
 
     def is_selected(self, stream_id):
         return stream_id in self.selected_ids

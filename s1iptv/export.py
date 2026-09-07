@@ -18,7 +18,7 @@ there via the normal Assign flow on the Live TV tab.
 
 import os
 
-from .locals_data import find_locals_raw_categories, fetch_locals
+from .locals_data import find_locals_raw_categories, fetch_locals, LOCALS_OWN_CATEGORY_NAME
 
 KODI_IPTV_DEFAULT_DIR = os.path.expandvars(r'%APPDATA%\Kodi\custom\IPTV')
 _APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -62,19 +62,27 @@ def build_m3u(store, export_store, locals_store, client):
                     locals_by_raw_category.setdefault(ch['category_name'].strip().upper(), []).append(ch)
                     locals_channel_count += 1
 
+    locals_group_title = (
+        None if locals_store.merge_into_parent else LOCALS_OWN_CATEGORY_NAME
+    )
+
     lines = ['#EXTM3U']
     channel_count = 0
+    standalone_locals_entries = []  # (name, stream_id), only used when not merging
 
     for cat in store.categories('live'):
-        cat_entries = []  # (name, stream_id)
+        cat_entries = []  # (name, stream_id) -- entries that use this category's own name
         for sub in cat.get('subcategories', []):
             is_locals = _is_locals_subcategory(sub['name'])
             for raw in sub.get('raw_categories', []):
                 if not export_store.is_included('live', raw):
                     continue
                 if is_locals:
-                    for ch in locals_by_raw_category.get(raw.strip().upper(), []):
-                        cat_entries.append((ch['name'], ch['stream_id']))
+                    channels = locals_by_raw_category.get(raw.strip().upper(), [])
+                    if locals_group_title is None:
+                        cat_entries.extend((ch['name'], ch['stream_id']) for ch in channels)
+                    else:
+                        standalone_locals_entries.extend((ch['name'], ch['stream_id']) for ch in channels)
                 else:
                     cat_id = live_cats_by_name.get(raw.strip().upper())
                     if cat_id is None:
@@ -89,5 +97,11 @@ def build_m3u(store, export_store, locals_store, client):
             lines.append(f'#EXTINF:-1 group-title="{cat["name"]}",{name}')
             lines.append(url)
             channel_count += 1
+
+    for name, stream_id in standalone_locals_entries:
+        url = client.live_stream_url(stream_id)
+        lines.append(f'#EXTINF:-1 group-title="{locals_group_title}",{name}')
+        lines.append(url)
+        channel_count += 1
 
     return '\n'.join(lines) + '\n', channel_count, locals_channel_count

@@ -13,7 +13,10 @@ from PyQt6.QtWidgets import (
 from . import export as export_module
 from .category_store import CategoryStore
 from .export_selection import ExportSelectionStore
-from .locals_data import LocalsSelectionStore, find_locals_raw_categories, OTHER_BUCKET
+from .locals_data import (
+    LocalsSelectionStore, find_locals_raw_categories, find_locals_parent_category_name,
+    OTHER_BUCKET, LOCALS_OWN_CATEGORY_NAME,
+)
 from .locals_tab import LocalsTab
 from .settings_tab import SettingsTab
 from .xtream_client import XtreamClient, ConfigError, load_config_or_blank, save_config
@@ -318,11 +321,14 @@ class CategoryTab(QWidget):
         saved total selection count."""
         selection_store = self.locals_tab.selection_store
         grouped = self.locals_tab.grouped
+        dest = (find_locals_parent_category_name(self.store) or "its parent category") \
+            if selection_store.merge_into_parent else LOCALS_OWN_CATEGORY_NAME
 
         if not grouped:
             total_selected = len(selection_store.selected_ids)
             header = QListWidgetItem(
-                f"LOCALS — {total_selected} channels selected (refresh Locals tab for state breakdown)"
+                f'LOCALS — {total_selected} channels selected → exports under "{dest}" '
+                f'(refresh Locals tab for state breakdown)'
             )
             header.setForeground(Qt.GlobalColor.yellow)
             self.export_preview_list.addItem(header)
@@ -338,7 +344,7 @@ class CategoryTab(QWidget):
                     per_state_selected[state] = per_state_selected.get(state, 0) + 1
                     total_selected += 1
 
-        header = QListWidgetItem(f"LOCALS — {total_selected} channels selected")
+        header = QListWidgetItem(f'LOCALS — {total_selected} channels selected → exports under "{dest}"')
         header.setForeground(Qt.GlobalColor.yellow)
         self.export_preview_list.addItem(header)
         for state in sorted(k for k in per_state_selected if k != OTHER_BUCKET):
