@@ -471,6 +471,10 @@ class MainWindow(QMainWindow):
 
         self.setStatusBar(QStatusBar())
         self._log("Ready. Taxonomy loaded from " + self.store.path)
+        if self.store.last_sync_notes:
+            self._log(f"Auto-synced {len(self.store.last_sync_notes)} raw categories to match updated taxonomy seed:")
+            for note in self.store.last_sync_notes:
+                self._log(f"  {note}")
 
     # ------------------------------------------------------------------
     def _build_banner(self):
