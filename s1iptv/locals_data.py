@@ -53,7 +53,18 @@ def parse_state(channel_name):
     return first if first in US_STATE_CODES else None
 
 
+# Name of the subcategory that triggers the individual-channel-selection
+# special case (see export.py), AND the group-title used for it on export
+# when not merged into its parent category. Coincidentally the same string
+# for both purposes today -- every "is this the Locals subcategory?" check
+# anywhere in the app must go through is_locals_subcategory() below rather
+# than re-comparing against a literal, so the two purposes can't drift out
+# of sync with each other if this ever needs to change.
 LOCALS_OWN_CATEGORY_NAME = 'LOCALS'
+
+
+def is_locals_subcategory(name):
+    return name.strip().upper() == LOCALS_OWN_CATEGORY_NAME
 
 
 def find_locals_raw_categories(store):
@@ -64,7 +75,7 @@ def find_locals_raw_categories(store):
     names = []
     for cat in store.categories('live'):
         for sub in cat.get('subcategories', []):
-            if sub['name'].strip().upper() == 'LOCALS':
+            if is_locals_subcategory(sub['name']):
                 names.extend(sub.get('raw_categories', []))
     return names
 
@@ -74,7 +85,7 @@ def find_locals_parent_category_name(store):
     subcategory (e.g. "USA LIVE"), or None if there isn't one yet."""
     for cat in store.categories('live'):
         for sub in cat.get('subcategories', []):
-            if sub['name'].strip().upper() == 'LOCALS':
+            if is_locals_subcategory(sub['name']):
                 return cat['name']
     return None
 

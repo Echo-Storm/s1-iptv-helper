@@ -15,9 +15,10 @@ from .category_store import CategoryStore
 from .export_selection import ExportSelectionStore
 from .locals_data import (
     LocalsSelectionStore, find_locals_raw_categories, find_locals_parent_category_name,
-    OTHER_BUCKET, LOCALS_OWN_CATEGORY_NAME,
+    is_locals_subcategory, OTHER_BUCKET, LOCALS_OWN_CATEGORY_NAME,
 )
 from .locals_tab import LocalsTab
+from .logger import get_logger
 from .settings_tab import SettingsTab
 from .xtream_client import XtreamClient, ConfigError, load_config_or_blank, save_config
 
@@ -279,15 +280,20 @@ class CategoryTab(QWidget):
     def _refresh_export_preview(self):
         self.export_preview_list.clear()
 
-        # Raw categories inside a subcategory literally named "Locals" don't
-        # get listed like normal raw categories -- their real export set is
-        # the individual-channel selection from the Locals tab, which a bare
-        # category name like "USA ABC" doesn't convey at all.
+        # The "Locals" special-case (raw categories that don't get listed
+        # individually because their real export set is the per-channel
+        # selection from the Locals tab) only applies to the Live TV tab.
+        # On Demand has no Locals concept -- even if a subcategory there
+        # happened to be named "Locals", treat it as an ordinary subcategory
+        # rather than silently dropping its raw categories from the preview.
+        treat_locals_specially = self.content_type == 'live'
+
         locals_raw_upper = set()
-        for cat in self.store.categories(self.content_type):
-            for sub in cat.get('subcategories', []):
-                if sub['name'].strip().upper() == 'LOCALS':
-                    locals_raw_upper.update(r.strip().upper() for r in sub.get('raw_categories', []))
+        if treat_locals_specially:
+            for cat in self.store.categories(self.content_type):
+                for sub in cat.get('subcategories', []):
+                    if is_locals_subcategory(sub['name']):
+                        locals_raw_upper.update(r.strip().upper() for r in sub.get('raw_categories', []))
 
         included_names = []
         checked_locals_raw = set()
@@ -304,7 +310,7 @@ class CategoryTab(QWidget):
             len(sub.get('raw_categories', []))
             for cat in self.store.categories(self.content_type)
             for sub in cat.get('subcategories', [])
-            if sub['name'].strip().upper() != 'LOCALS'
+            if not (treat_locals_specially and is_locals_subcategory(sub['name']))
         )
         self.export_preview_label.setText(f"Will Export  ({len(included_names)} of {total} categories)")
 
@@ -325,10 +331,16 @@ class CategoryTab(QWidget):
             if selection_store.merge_into_parent else LOCALS_OWN_CATEGORY_NAME
 
         if not grouped:
+            # This total isn't filtered by which raw categories are
+            # currently checked (that mapping only exists in the per-state
+            # data from a Locals fetch) -- it's every channel ever selected,
+            # so it can overstate what actually exports if a raw category
+            # got unchecked since the last Locals fetch. The real export
+            # (export.py) always re-fetches and filters correctly regardless.
             total_selected = len(selection_store.selected_ids)
             header = QListWidgetItem(
-                f'LOCALS — {total_selected} channels selected → exports under "{dest}" '
-                f'(refresh Locals tab for state breakdown)'
+                f'LOCALS — ~{total_selected} channels selected → exports under "{dest}" '
+                f'(unfiltered estimate; refresh Locals tab for an exact, per-state count)'
             )
             header.setForeground(Qt.GlobalColor.yellow)
             self.export_preview_list.addItem(header)
@@ -491,10 +503,10 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(sidebar)
 
         layout.addWidget(_section_label("Connection"))
-        refresh_btn = QPushButton("Refresh Categories")
-        refresh_btn.setProperty('role', 'primary')
-        refresh_btn.clicked.connect(self._refresh_categories)
-        layout.addWidget(refresh_btn)
+        self.refresh_categories_btn = QPushButton("Refresh Categories")
+        self.refresh_categories_btn.setProperty('role', 'primary')
+        self.refresh_categories_btn.clicked.connect(self._refresh_categories)
+        layout.addWidget(self.refresh_categories_btn)
 
         layout.addWidget(_section_label("Taxonomy"))
         save_btn = QPushButton("Save Taxonomy")
@@ -514,8 +526,10 @@ class MainWindow(QMainWindow):
     def _log(self, message):
         self.log_view.appendPlainText(message)
         self.statusBar().showMessage(message, 5000)
+        get_logger().info(message)
 
     def _refresh_categories(self):
+        self.refresh_categories_btn.setEnabled(False)
         self._log("Fetching categories from provider...")
         self._worker = FetchCategoriesWorker()
         self._worker.succeeded.connect(self._on_fetch_succeeded)
@@ -523,10 +537,12 @@ class MainWindow(QMainWindow):
         self._worker.start()
 
     def _on_fetch_succeeded(self, result):
+        self.refresh_categories_btn.setEnabled(True)
         self.live_tab.apply_fetch(result['live'])
         self.vod_tab.apply_fetch(result['on_demand'])
 
     def _on_fetch_failed(self, message):
+        self.refresh_categories_btn.setEnabled(True)
         self._log(f"Fetch failed: {message.splitlines()[-1] if message else message}")
         QMessageBox.critical(self, "Fetch failed", message)
 

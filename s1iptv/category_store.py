@@ -22,10 +22,6 @@ DEFAULT_TAXONOMY_PATH = os.path.join(ROOT_DIR, 'taxonomy.json')
 CONTENT_TYPES = ('live', 'on_demand')
 
 
-class DuplicateAssignmentError(ValueError):
-    pass
-
-
 def _empty_taxonomy():
     return {'live': [], 'on_demand': []}
 

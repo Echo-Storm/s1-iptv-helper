@@ -18,7 +18,9 @@ there via the normal Assign flow on the Live TV tab.
 
 import os
 
-from .locals_data import find_locals_raw_categories, fetch_locals, LOCALS_OWN_CATEGORY_NAME
+from .locals_data import (
+    find_locals_raw_categories, fetch_locals, is_locals_subcategory, LOCALS_OWN_CATEGORY_NAME,
+)
 
 KODI_IPTV_DEFAULT_DIR = os.path.expandvars(r'%APPDATA%\Kodi\custom\IPTV')
 _APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -35,10 +37,6 @@ def default_export_path():
     if os.path.isdir(KODI_IPTV_DEFAULT_DIR):
         return os.path.join(KODI_IPTV_DEFAULT_DIR, 'superone.m3u8')
     return os.path.join(_APP_ROOT, 'superone.m3u8')
-
-
-def _is_locals_subcategory(name):
-    return name.strip().upper() == 'LOCALS'
 
 
 def build_m3u(store, export_store, locals_store, client):
@@ -73,7 +71,7 @@ def build_m3u(store, export_store, locals_store, client):
     for cat in store.categories('live'):
         cat_entries = []  # (name, stream_id) -- entries that use this category's own name
         for sub in cat.get('subcategories', []):
-            is_locals = _is_locals_subcategory(sub['name'])
+            is_locals = is_locals_subcategory(sub['name'])
             for raw in sub.get('raw_categories', []):
                 if not export_store.is_included('live', raw):
                     continue

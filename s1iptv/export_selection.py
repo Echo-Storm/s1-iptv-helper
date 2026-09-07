@@ -54,8 +54,3 @@ class ExportSelectionStore:
         elif target not in {x.strip().upper() for x in excluded}:
             excluded.add(raw_name)
         self.save()
-
-    def included_raw_names(self, content_type, all_raw_names):
-        """Given every raw category name currently in the taxonomy for this
-        content type, return just the ones not excluded."""
-        return [n for n in all_raw_names if self.is_included(content_type, n)]

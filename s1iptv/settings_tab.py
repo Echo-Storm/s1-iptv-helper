@@ -71,9 +71,9 @@ class SettingsTab(QWidget):
         layout.addLayout(form)
 
         button_row = QHBoxLayout()
-        test_btn = QPushButton("Test Connection")
-        test_btn.clicked.connect(self._test_connection)
-        button_row.addWidget(test_btn)
+        self.test_btn = QPushButton("Test Connection")
+        self.test_btn.clicked.connect(self._test_connection)
+        button_row.addWidget(self.test_btn)
 
         save_btn = QPushButton("Save")
         save_btn.setProperty('role', 'primary')
@@ -150,6 +150,7 @@ class SettingsTab(QWidget):
         if not all((server, username, password)):
             self.status_label.setText("Fill in server, username, and password first.")
             return
+        self.test_btn.setEnabled(False)
         self.status_label.setText("Testing connection...")
         self._worker = TestConnectionWorker(server, username, password)
         self._worker.succeeded.connect(self._on_test_succeeded)
@@ -157,11 +158,13 @@ class SettingsTab(QWidget):
         self._worker.start()
 
     def _on_test_succeeded(self, category_count):
+        self.test_btn.setEnabled(True)
         message = f"Connection OK — {category_count} live categories found."
         self.status_label.setText(message)
         self.log(message)
 
     def _on_test_failed(self, error):
+        self.test_btn.setEnabled(True)
         message = f"Connection failed: {error}"
         self.status_label.setText(message)
         self.log(message)

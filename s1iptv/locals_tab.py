@@ -113,10 +113,10 @@ class LocalsTab(QWidget):
         root = QVBoxLayout(self)
 
         toolbar = QHBoxLayout()
-        refresh_btn = QPushButton("Refresh Locals")
-        refresh_btn.setProperty('role', 'primary')
-        refresh_btn.clicked.connect(self.refresh)
-        toolbar.addWidget(refresh_btn)
+        self.refresh_btn = QPushButton("Refresh Locals")
+        self.refresh_btn.setProperty('role', 'primary')
+        self.refresh_btn.clicked.connect(self.refresh)
+        toolbar.addWidget(self.refresh_btn)
         select_all_btn = QPushButton("Select All")
         select_all_btn.clicked.connect(self._select_all)
         toolbar.addWidget(select_all_btn)
@@ -227,6 +227,7 @@ class LocalsTab(QWidget):
                 "\"Locals\" on the Live TV tab first."
             )
             return
+        self.refresh_btn.setEnabled(False)
         self.log(f"Fetching {len(raw_names)} local-affiliate categories...")
         self._worker = LocalsFetchWorker(raw_names)
         self._worker.succeeded.connect(self._on_fetch_succeeded)
@@ -234,10 +235,12 @@ class LocalsTab(QWidget):
         self._worker.start()
 
     def _on_fetch_failed(self, message):
+        self.refresh_btn.setEnabled(True)
         self.log(f"Locals fetch failed: {message.splitlines()[-1] if message else message}")
         QMessageBox.critical(self, "Fetch failed", message)
 
     def _on_fetch_succeeded(self, grouped):
+        self.refresh_btn.setEnabled(True)
         self.grouped = grouped
         total = sum(len(v) for v in grouped.values())
         self.log(f"Locals: {total} channels across {len(grouped)} states/regions")
@@ -328,7 +331,17 @@ class LocalsTab(QWidget):
         self._notify_change()
 
     # ------------------------------------------------------------------
+    def _require_fetched(self):
+        if not self.grouped:
+            QMessageBox.information(
+                self, "No channels loaded", "Click \"Refresh Locals\" to fetch channels first."
+            )
+            return False
+        return True
+
     def _select_all(self):
+        if not self._require_fetched():
+            return
         for channels in self.grouped.values():
             for ch in channels:
                 self.selection_store.set_selected(ch['stream_id'], True)
@@ -340,6 +353,8 @@ class LocalsTab(QWidget):
         self._notify_change()
 
     def _deselect_all(self):
+        if not self._require_fetched():
+            return
         for channels in self.grouped.values():
             for ch in channels:
                 self.selection_store.set_selected(ch['stream_id'], False)
@@ -351,6 +366,8 @@ class LocalsTab(QWidget):
         self._notify_change()
 
     def _select_defaults(self):
+        if not self._require_fetched():
+            return
         defaults = self.selection_store.default_states
         for state, channels in self.grouped.items():
             include = state in defaults
