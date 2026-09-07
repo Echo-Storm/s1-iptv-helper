@@ -43,11 +43,22 @@ def load_config(path=CONFIG_PATH):
     return cfg
 
 
+# Default trailing-blank-slot buffer for M3U export (see export.py's
+# DEFAULT_BLANK_BUFFER, which this mirrors -- kept as a separate literal
+# here rather than importing export.py, since a low-level API client
+# shouldn't depend on the export layer). -1 means "off" (export every
+# channel a category has, the tool's original behavior).
+DEFAULT_BLANK_BUFFER = 20
+
+
 def load_config_or_blank(path=CONFIG_PATH):
     """Same as load_config, but returns blank values instead of raising when
     the file is missing or incomplete — for the Settings tab, which needs to
     render even before the app is configured."""
-    blank = {'server': '', 'username': '', 'password': '', 'export_path': ''}
+    blank = {
+        'server': '', 'username': '', 'password': '', 'export_path': '',
+        'blank_buffer': DEFAULT_BLANK_BUFFER,
+    }
     if not os.path.exists(path):
         return blank
     try:
@@ -55,19 +66,28 @@ def load_config_or_blank(path=CONFIG_PATH):
             cfg = json.load(f)
     except (json.JSONDecodeError, OSError):
         return blank
-    blank.update({k: cfg.get(k, '') for k in blank})
+    # Fall back to each field's own default (not a blanket ''), so an
+    # older config.json without blank_buffer still gets DEFAULT_BLANK_BUFFER
+    # instead of an empty string.
+    blank.update({k: cfg.get(k, blank[k]) for k in blank})
     return blank
 
 
-def save_config(server, username, password, export_path=None, path=CONFIG_PATH):
-    """export_path=None leaves whatever was already saved untouched (so
-    saving connection settings doesn't wipe out a previously chosen export
-    path, and vice versa)."""
+def save_config(server, username, password, export_path=None, blank_buffer=None, path=CONFIG_PATH):
+    """export_path=None / blank_buffer=None leave whatever was already saved
+    untouched (so saving connection settings doesn't wipe out a previously
+    chosen export path or blank-buffer value, and vice versa)."""
+    existing = load_config_or_blank(path)
     if export_path is None:
-        export_path = load_config_or_blank(path).get('export_path', '')
+        export_path = existing.get('export_path', '')
+    if blank_buffer is None:
+        blank_buffer = existing.get('blank_buffer', DEFAULT_BLANK_BUFFER)
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(
-            {'server': server, 'username': username, 'password': password, 'export_path': export_path},
+            {
+                'server': server, 'username': username, 'password': password,
+                'export_path': export_path, 'blank_buffer': blank_buffer,
+            },
             f, indent=2,
         )
 

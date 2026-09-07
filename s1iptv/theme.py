@@ -159,8 +159,63 @@ def build_stylesheet():
         padding: 4px 6px;
         color: {COLOR_TEXT};
     }}
-    QLineEdit:focus, QComboBox:focus {{
+    QLineEdit:focus, QComboBox:focus, QSpinBox:focus {{
         border-color: {COLOR_ACCENT};
+    }}
+
+    /* QSpinBox needs its up/down sub-controls defined explicitly once it
+       has any border/padding of its own -- as soon as a stylesheet touches
+       a QAbstractSpinBox at all, Qt stops drawing the native step buttons
+       and expects the stylesheet to lay them out. Without these rules the
+       buttons still exist but their hit-region collapses into the corner
+       radius/border and clicks land on the frame instead (the up button
+       "doesn't work" symptom) -- explicit geometry + arrows fixes both the
+       visuals and the click target. */
+    QSpinBox {{
+        padding-right: 16px;   /* room for the button column so text doesn't run under it */
+    }}
+    QSpinBox::up-button, QSpinBox::down-button {{
+        subcontrol-origin: border;
+        width: 16px;
+        border-left: 1px solid {COLOR_BORDER_BRIGHT};
+        background-color: {COLOR_BUTTON_BG};
+    }}
+    QSpinBox::up-button {{
+        subcontrol-position: top right;
+        border-top-right-radius: 3px;
+        border-bottom: 1px solid {COLOR_BORDER_BRIGHT};
+    }}
+    QSpinBox::down-button {{
+        subcontrol-position: bottom right;
+        border-bottom-right-radius: 3px;
+    }}
+    QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
+        background-color: {COLOR_BUTTON_HOVER};
+    }}
+    QSpinBox::up-button:pressed, QSpinBox::down-button:pressed {{
+        background-color: {COLOR_ACCENT_DIM};
+    }}
+    QSpinBox::up-arrow {{
+        image: none;
+        width: 0;
+        height: 0;
+        border-left: 3px solid transparent;
+        border-right: 3px solid transparent;
+        border-bottom: 5px solid {COLOR_TEXT};
+    }}
+    QSpinBox::down-arrow {{
+        image: none;
+        width: 0;
+        height: 0;
+        border-left: 3px solid transparent;
+        border-right: 3px solid transparent;
+        border-top: 5px solid {COLOR_TEXT};
+    }}
+    QSpinBox::up-arrow:disabled, QSpinBox::up-arrow:off {{
+        border-bottom-color: {COLOR_TEXT_MUTED};
+    }}
+    QSpinBox::down-arrow:disabled, QSpinBox::down-arrow:off {{
+        border-top-color: {COLOR_TEXT_MUTED};
     }}
 
     /* ---- Log / status strip -------------------------------------------- */

@@ -3,7 +3,7 @@
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout, QHBoxLayout, QLineEdit, QPushButton,
-    QCheckBox, QLabel, QFileDialog,
+    QCheckBox, QLabel, QFileDialog, QSpinBox,
 )
 
 from .xtream_client import XtreamClient, load_config_or_blank, save_config, CONFIG_PATH
@@ -70,6 +70,38 @@ class SettingsTab(QWidget):
 
         layout.addLayout(form)
 
+        layout.addWidget(_section_label("Export"))
+        export_form = QFormLayout()
+        export_form.setSpacing(10)
+        export_row = QHBoxLayout()
+        self.export_path_edit = QLineEdit()
+        export_row.addWidget(self.export_path_edit)
+        browse_btn = QPushButton("Browse...")
+        browse_btn.clicked.connect(self._browse_export_path)
+        export_row.addWidget(browse_btn)
+        export_form.addRow("Default M3U path:", export_row)
+
+        self.blank_buffer_spin = QSpinBox()
+        self.blank_buffer_spin.setRange(-1, 500)
+        self.blank_buffer_spin.setSpecialValueText("Off (export every channel)")
+        self.blank_buffer_spin.setToolTip(
+            "Some provider categories (PPV backups, sport EVENTS feeds) reserve "
+            "hundreds of numbered slots that only get a real title once an event "
+            "is scheduled on them -- most sit blank. Trims each category to its "
+            "last real event plus this many extra slots, so an event scheduled "
+            "before your next export still has a channel waiting for it. "
+            "-1 disables trimming (old behavior: export every channel)."
+        )
+        export_form.addRow("Blank event-slot buffer:", self.blank_buffer_spin)
+
+        layout.addLayout(export_form)
+
+        # One Save button for everything above (connection + export settings) --
+        # placed here, below both sections, instead of between them, so it
+        # doesn't visually read as "save the connection fields only." Previously
+        # it sat right after the Password field and before the Export section,
+        # which made it easy to miss that changing the blank-buffer spinner
+        # still needed a click here to actually persist to config.json.
         button_row = QHBoxLayout()
         self.test_btn = QPushButton("Test Connection")
         self.test_btn.clicked.connect(self._test_connection)
@@ -84,18 +116,6 @@ class SettingsTab(QWidget):
 
         self.status_label = QLabel("")
         layout.addWidget(self.status_label)
-
-        layout.addWidget(_section_label("Export"))
-        export_form = QFormLayout()
-        export_form.setSpacing(10)
-        export_row = QHBoxLayout()
-        self.export_path_edit = QLineEdit()
-        export_row.addWidget(self.export_path_edit)
-        browse_btn = QPushButton("Browse...")
-        browse_btn.clicked.connect(self._browse_export_path)
-        export_row.addWidget(browse_btn)
-        export_form.addRow("Default M3U path:", export_row)
-        layout.addLayout(export_form)
 
         layout.addWidget(_section_label("File Locations"))
         paths_form = QFormLayout()
@@ -123,6 +143,7 @@ class SettingsTab(QWidget):
         self.username_edit.setText(cfg['username'])
         self.password_edit.setText(cfg['password'])
         self.export_path_edit.setText(cfg.get('export_path') or default_export_path())
+        self.blank_buffer_spin.setValue(cfg.get('blank_buffer', 20))
 
     def _browse_export_path(self):
         path, _ = QFileDialog.getSaveFileName(
@@ -174,7 +195,11 @@ class SettingsTab(QWidget):
         if not all((server, username, password)):
             self.status_label.setText("Fill in server, username, and password before saving.")
             return
-        save_config(server, username, password, export_path=self.export_path_edit.text().strip())
+        save_config(
+            server, username, password,
+            export_path=self.export_path_edit.text().strip(),
+            blank_buffer=self.blank_buffer_spin.value(),
+        )
         message = f"Saved settings to {CONFIG_PATH}"
         self.status_label.setText(message)
         self.log(message)

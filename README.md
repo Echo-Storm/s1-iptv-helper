@@ -1,5 +1,7 @@
 # S1 IPTV Helper
 
+**Version:** 0.6.0
+
 A PyQt6 desktop tool for organizing the IPTV service's live-TV and on-demand
 (movies/series) categories into a curated **category → subcategory**
 structure, replacing the old tkinter-based `superplayerone_gui.py` M3U
@@ -14,8 +16,11 @@ renaming things underneath it.
 
 ## Status
 
-Early scaffold. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for what's built vs.
-planned.
+Past the early-scaffold stage: full category taxonomy management, live M3U
+export (with automatic blank-event-slot trimming), a per-channel Locals
+picker that auto-loads on startup, in-app settings, and a 70-test automated
+regression suite. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full
+feature history and what's still planned.
 
 ## Why this exists
 

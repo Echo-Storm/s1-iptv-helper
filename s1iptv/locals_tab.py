@@ -184,7 +184,7 @@ class LocalsTab(QWidget):
         splitter.setStretchFactor(1, 3)
         root.addWidget(splitter, stretch=1)
 
-        self.status_label = QLabel("Click \"Refresh Locals\" to fetch channels.")
+        self.status_label = QLabel("Loading channels...")
         root.addWidget(self.status_label)
 
         self._refresh_defaults_button_label()
@@ -218,34 +218,53 @@ class LocalsTab(QWidget):
         self._notify_change()
 
     # ------------------------------------------------------------------
-    def refresh(self):
+    def refresh(self, silent=False):
+        """
+        Fetch Locals data. silent=True is for the automatic fetch on app
+        startup (see MainWindow.__init__) -- it skips both popup dialogs
+        below (no taxonomy "Locals" subcategory yet / fetch failed) and
+        just logs instead, so a fresh install or a momentary network hiccup
+        doesn't throw a modal dialog in the user's face before they've even
+        looked at the app. A manual "Refresh Locals" click (silent=False,
+        the default) keeps the popups -- that's a deliberate action where
+        immediate feedback on why it failed is actually useful.
+        """
         self._refresh_merge_checkbox_label()
         raw_names = find_locals_raw_categories(self.store)
         if not raw_names:
-            QMessageBox.information(
-                self, "No locals configured",
-                "No Live subcategory named \"Locals\" was found in the taxonomy. "
-                "Assign local-affiliate raw categories to a subcategory named "
-                "\"Locals\" on the Live TV tab first."
-            )
+            if silent:
+                self.log("Locals auto-refresh skipped: no \"Locals\" subcategory in taxonomy yet")
+                self.status_label.setText(
+                    "No \"Locals\" subcategory in the taxonomy yet -- set one up on the Live TV tab."
+                )
+            else:
+                QMessageBox.information(
+                    self, "No locals configured",
+                    "No Live subcategory named \"Locals\" was found in the taxonomy. "
+                    "Assign local-affiliate raw categories to a subcategory named "
+                    "\"Locals\" on the Live TV tab first."
+                )
             return
         self.refresh_btn.setEnabled(False)
         self.log(f"Fetching {len(raw_names)} local-affiliate categories...")
         self._worker = LocalsFetchWorker(raw_names)
         self._worker.succeeded.connect(self._on_fetch_succeeded)
-        self._worker.failed.connect(self._on_fetch_failed)
+        self._worker.failed.connect(lambda msg: self._on_fetch_failed(msg, silent))
         self._worker.start()
 
-    def _on_fetch_failed(self, message):
+    def _on_fetch_failed(self, message, silent=False):
         self.refresh_btn.setEnabled(True)
         self.log(f"Locals fetch failed: {message.splitlines()[-1] if message else message}")
-        QMessageBox.critical(self, "Fetch failed", message)
+        self.status_label.setText("Could not load channels -- click \"Refresh Locals\" to try again.")
+        if not silent:
+            QMessageBox.critical(self, "Fetch failed", message)
 
     def _on_fetch_succeeded(self, grouped):
         self.refresh_btn.setEnabled(True)
         self.grouped = grouped
         total = sum(len(v) for v in grouped.values())
         self.log(f"Locals: {total} channels across {len(grouped)} states/regions")
+        self.status_label.setText(f"{total} channels loaded across {len(grouped)} states/regions.")
         self._rebuild_state_list()
         self._notify_change()
 

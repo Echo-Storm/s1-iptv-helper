@@ -76,27 +76,81 @@
   Practical effect: On Demand work is lower-priority than Live: keep its
   categories/taxonomy accurate and make sure nothing Live-side breaks it,
   but no export or deeper feature work is needed there.
+- Search/filter box on the Live TV / On Demand taxonomy trees
+  (`tree_filter_edit` / `_apply_tree_filter()`), matching the one already
+  on the Locals tab.
+- Backup rotation for `taxonomy.json` on save — `BACKUP_DIR` +
+  `MAX_BACKUPS = 15` in `category_store.py`, oldest pruned first.
+- Bulk/multi-select on the Assign flow (`_move_selected_tree_items()`) —
+  move several selected raw categories to a new home in one action instead
+  of one at a time.
+- Real automated regression suite: 70 offscreen `unittest` tests across
+  `tests/` (stdlib `unittest`, not pytest — matches TorBox_Manager's
+  existing convention) covering the taxonomy store, export logic
+  (including the blank-buffer trimming below), the Locals data layer, the
+  category tree's tri-state cascading/filter/bulk-move, and the Xtream
+  client's retry logic. Run with
+  `venv\Scripts\python -m unittest discover -s tests -v`.
+- Network resilience: `xtream_client.py`'s `_api_get()` retries transient
+  failures (timeout, connection error, 5xx, unparseable response) up to
+  `MAX_RETRIES = 3` times with exponential backoff before raising
+  `NetworkError` with a plain-language message. A 4xx response fails
+  immediately — retrying won't fix bad credentials.
 
-## Next (in progress, 2026-09-07)
+### Blank event-slot trimming (2026-09-07)
 
-1. ~~Catch this doc up to actual state~~ (this edit).
-2. Search/filter box on the Live TV / On Demand taxonomy trees, matching
-   the one already on the Locals tab — 18 top-level live categories deep
-   now, hunting by eye doesn't scale.
-3. Backup rotation for `taxonomy.json` on save (keep last N copies) — it's
-   hand-curated with no undo today; cheap insurance against a bad edit.
-4. Bulk/multi-select on the Assign flow — today it's one raw category at
-   a time from Unassigned, fine for occasional triage, painful for a
-   large batch (e.g. On Demand's 82 categories after a provider reshuffle).
-5. Promote the ad hoc verification scripts written throughout this
-   project's sessions (export logic, auto-sync, tri-state cascading,
-   locals grouping) into a real pytest suite, so regressions get caught
-   automatically instead of needing another one-off script each time.
-6. Network resilience: `xtream_client.py` has no retry/backoff, and a
-   flaky connection mid-fetch currently surfaces a raw traceback in a
-   message box. Add basic retry-with-backoff and translate common
-   failures (timeout, connection error, bad JSON/auth response) into
-   plain-language messages.
+Several provider categories — PPV backups, sport "EVENTS" feeds
+(ESPN/Sky Sports/etc.) — reserve hundreds of numbered slots that only get
+a real title once an event is actually scheduled on them; most sit blank
+at any given time. A live check found 2,529 of 8,813 total taxonomy
+channels (29%) were slots with nothing after the number, bloating the
+exported M3U (and, per the report that started this, visibly slowing
+Kodi's PVR load) for zero actual content.
+
+`export.py`'s `_trim_blank_event_slots()` trims each raw category to its
+last real (named) entry plus a configurable buffer of trailing blank
+slots — the buffer means an event scheduled between now and the next
+export already has a channel entry waiting for it, instead of only
+appearing after a re-export. Verified against a live pull that real
+(named) entries are always positioned as a contiguous block before every
+blank one, never interspersed, across every category checked — so
+trimming can never cut something that's actually airing. Configurable via
+Settings tab → "Blank event-slot buffer" (default 20, range -1 to 500,
+-1 disables trimming and exports every channel — the old behavior).
+
+**Bug found and fixed after shipping the first version**: the
+blank-detection regex only matched a single-word prefix before the number
+(`ESPN 597:`), silently missing multi-word prefixes (`NFL Games 003:`).
+This left `USA NFL GAMES` almost completely untrimmed — 198 of its 200
+entries are the multi-word shape. Caught by explicitly re-checking NFL
+after the feature shipped rather than assuming it worked; a full taxonomy
+rescan found one other affected category (`INTL SPORTS` > `TENNIS
+CHANNELS`, 5 entries). Fixed the regex to match any prefix, added
+regression tests for exactly this gap (`tests/test_export.py`).
+
+### Locals auto-load + Settings tab fixes (2026-09-07)
+
+- `LocalsTab.refresh(silent=True)` now fires automatically from
+  `MainWindow.__init__`, so the ~1000 local-affiliate channels are loaded
+  on startup instead of needing a manual "Refresh Locals" click every
+  session. `silent=True` swaps both popup dialogs (no "Locals"
+  subcategory configured yet / fetch failed) for a status-label message
+  and a log line instead, so a fresh install or a momentary network
+  hiccup doesn't throw a dialog before the window is even shown. Manual
+  clicks on the "Refresh Locals" button keep the original dialog
+  behavior. Verified end-to-end against the real provider: 1,032 channels
+  across 52 states load automatically with zero clicks.
+- Fixed a `QSpinBox` stylesheet bug in `theme.py`: as soon as any QSS
+  border/padding touches a `QAbstractSpinBox`, Qt needs the up/down
+  sub-controls (`::up-button`/`::down-button`/arrows) styled explicitly,
+  or their clickable hit-region collapses into the border/corner-radius
+  — symptom was the new blank-buffer spinner's up arrow not responding to
+  clicks. Added explicit sub-control rules matching the house theme.
+- Moved the Settings tab's Save button to sit after the Export section
+  fields instead of between Connection and Export — it previously read as
+  "save the connection fields only," and a changed Export-section value
+  (like the blank-buffer spinner) could silently fail to persist because
+  it wasn't obvious the same button also covered it.
 
 ## Later, can wait
 

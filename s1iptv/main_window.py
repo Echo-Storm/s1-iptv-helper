@@ -22,9 +22,17 @@ from .logger import get_logger
 from .settings_tab import SettingsTab
 from .xtream_client import XtreamClient, ConfigError, NetworkError, load_config_or_blank, save_config
 
-APP_VERSION = "0.5.0"
+APP_VERSION = "0.6.0"
 
 RAW_NAME_ROLE = Qt.ItemDataRole.UserRole
+
+
+def _configured_blank_buffer():
+    """Read the Settings-tab blank-event-slot buffer for export/count calls.
+    Stored as -1 for "off" (see SettingsTab); export.py's build_m3u/
+    count_channels expect None for that same meaning."""
+    value = load_config_or_blank().get('blank_buffer', 20)
+    return None if value < 0 else value
 
 
 class FetchCategoriesWorker(QThread):
@@ -68,7 +76,8 @@ class ExportWorker(QThread):
         try:
             client = XtreamClient.from_config()
             content, count, locals_count = export_module.build_m3u(
-                self.store, self.export_store, self.locals_store, client
+                self.store, self.export_store, self.locals_store, client,
+                blank_buffer=_configured_blank_buffer(),
             )
             with open(self.path, 'w', encoding='utf-8') as f:
                 f.write(content)
@@ -99,7 +108,8 @@ class CountWorker(QThread):
         try:
             client = XtreamClient.from_config()
             count, locals_count = export_module.count_channels(
-                self.store, self.export_store, self.locals_store, client
+                self.store, self.export_store, self.locals_store, client,
+                blank_buffer=_configured_blank_buffer(),
             )
             self.succeeded.emit(count, locals_count)
         except ConfigError as e:
@@ -588,6 +598,14 @@ class MainWindow(QMainWindow):
             self._log(f"Auto-synced {len(self.store.last_sync_notes)} raw categories to match updated taxonomy seed:")
             for note in self.store.last_sync_notes:
                 self._log(f"  {note}")
+
+        # Auto-fetch Locals channels on startup instead of making it a manual
+        # "Refresh Locals" click every session -- silent=True so a fresh
+        # install (no credentials yet) or a momentary network hiccup logs
+        # quietly instead of throwing a dialog before the window is even
+        # shown. Must come after self.log_view exists above: refresh() logs
+        # immediately via self._log(), which writes to self.log_view.
+        self.locals_tab.refresh(silent=True)
 
     # ------------------------------------------------------------------
     def _build_banner(self):
