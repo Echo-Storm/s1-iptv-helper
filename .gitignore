@@ -13,6 +13,9 @@ taxonomy.json
 # Personal locals channel selection (which stream_ids are checked)
 locals_selection.json
 
+# Personal export selection (which raw categories are checked for export)
+export_selection.json
+
 # Generated playlists embed the account credentials in every stream URL
 *.m3u
 *.m3u8

@@ -11,11 +11,14 @@ from PyQt6.QtWidgets import (
 )
 
 from .category_store import CategoryStore
+from .export_selection import ExportSelectionStore
 from .locals_tab import LocalsTab
 from .settings_tab import SettingsTab
 from .xtream_client import XtreamClient, ConfigError
 
-APP_VERSION = "0.3.0"
+APP_VERSION = "0.4.0"
+
+RAW_NAME_ROLE = Qt.ItemDataRole.UserRole
 
 
 class FetchCategoriesWorker(QThread):
@@ -53,12 +56,15 @@ def _section_label(text):
 
 
 class CategoryTab(QWidget):
-    """One tab (Live TV or On Demand): taxonomy tree + unassigned/stale panel."""
+    """One tab (Live TV or On Demand): checkable taxonomy tree, an export
+    preview showing exactly what's currently included, and the
+    unassigned/stale triage panel."""
 
-    def __init__(self, content_type, store: CategoryStore, log_fn):
+    def __init__(self, content_type, store: CategoryStore, export_store: ExportSelectionStore, log_fn):
         super().__init__()
         self.content_type = content_type
         self.store = store
+        self.export_store = export_store
         self.log = log_fn
         self.last_fetched_names = []
 
@@ -67,20 +73,30 @@ class CategoryTab(QWidget):
         # ---- Left: taxonomy tree ----
         left = QWidget()
         left_layout = QVBoxLayout(left)
-        left_layout.addWidget(_section_label("Taxonomy"))
+        tree_header_row = QHBoxLayout()
+        tree_header_row.addWidget(_section_label("Taxonomy (checked = included in export)"))
+        tree_header_row.addStretch(1)
+        select_all_btn = QPushButton("Select All")
+        select_all_btn.clicked.connect(lambda: self._set_all_checked(True))
+        tree_header_row.addWidget(select_all_btn)
+        deselect_all_btn = QPushButton("Deselect All")
+        deselect_all_btn.clicked.connect(lambda: self._set_all_checked(False))
+        tree_header_row.addWidget(deselect_all_btn)
+        left_layout.addLayout(tree_header_row)
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(["Category / Subcategory / Raw name"])
+        self.tree.itemChanged.connect(self._on_tree_item_changed)
         left_layout.addWidget(self.tree)
         splitter.addWidget(left)
 
-        # ---- Right: unassigned + stale ----
+        # ---- Right: export preview + unassigned + stale ----
         right = QWidget()
         right_layout = QVBoxLayout(right)
 
         right_layout.addWidget(_section_label("Unassigned (from latest fetch)"))
         self.unassigned_list = QListWidget()
         self.unassigned_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
-        right_layout.addWidget(self.unassigned_list)
+        right_layout.addWidget(self.unassigned_list, stretch=1)
 
         assign_row = QHBoxLayout()
         self.category_combo = QComboBox()
@@ -97,10 +113,15 @@ class CategoryTab(QWidget):
         assign_row.addWidget(assign_btn)
         right_layout.addLayout(assign_row)
 
+        self.export_preview_label = _section_label("Will Export")
+        right_layout.addWidget(self.export_preview_label)
+        self.export_preview_list = QListWidget()
+        right_layout.addWidget(self.export_preview_list, stretch=3)
+
         right_layout.addWidget(_section_label("Stale (in taxonomy, missing from latest fetch)"))
         self.stale_list = QListWidget()
         self.stale_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
-        right_layout.addWidget(self.stale_list)
+        right_layout.addWidget(self.stale_list, stretch=1)
 
         unassign_btn = QPushButton("Remove from taxonomy")
         unassign_btn.clicked.connect(self._unassign_selected_stale)
@@ -119,16 +140,116 @@ class CategoryTab(QWidget):
 
     # ------------------------------------------------------------------
     def refresh_tree(self):
+        self.tree.blockSignals(True)
         self.tree.clear()
         for cat in self.store.categories(self.content_type):
             cat_item = QTreeWidgetItem([cat['name']])
+            cat_item.setFlags(cat_item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            cat_included_flags = []
             for sub in cat.get('subcategories', []):
                 sub_item = QTreeWidgetItem([f"{sub['name']}  ({len(sub.get('raw_categories', []))})"])
+                sub_item.setFlags(sub_item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                sub_included_flags = []
                 for raw in sub.get('raw_categories', []):
-                    sub_item.addChild(QTreeWidgetItem([raw]))
+                    leaf_item = QTreeWidgetItem([raw])
+                    leaf_item.setFlags(leaf_item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                    leaf_item.setData(0, RAW_NAME_ROLE, raw)
+                    included = self.export_store.is_included(self.content_type, raw)
+                    leaf_item.setCheckState(0, Qt.CheckState.Checked if included else Qt.CheckState.Unchecked)
+                    sub_item.addChild(leaf_item)
+                    sub_included_flags.append(included)
+                sub_item.setCheckState(0, self._aggregate_state(sub_included_flags))
                 cat_item.addChild(sub_item)
+                cat_included_flags.extend(sub_included_flags)
+            cat_item.setCheckState(0, self._aggregate_state(cat_included_flags))
             self.tree.addTopLevelItem(cat_item)
         self.tree.expandToDepth(0)
+        self.tree.blockSignals(False)
+        self._refresh_export_preview()
+
+    @staticmethod
+    def _aggregate_state(included_flags):
+        if not included_flags or all(included_flags):
+            return Qt.CheckState.Checked
+        if not any(included_flags):
+            return Qt.CheckState.Unchecked
+        return Qt.CheckState.PartiallyChecked
+
+    # ------------------------------------------------------------------
+    # Checkbox handling — a raw-name leaf is the ground truth (persisted via
+    # export_store); category/subcategory checkboxes are a derived tri-state
+    # display, and toggling one directly cascades to every descendant leaf.
+    # ------------------------------------------------------------------
+    def _on_tree_item_changed(self, item, column):
+        self.tree.blockSignals(True)
+        try:
+            raw_name = item.data(0, RAW_NAME_ROLE)
+            if raw_name is not None:
+                included = item.checkState(0) == Qt.CheckState.Checked
+                self.export_store.set_included(self.content_type, raw_name, included)
+            else:
+                # Category/subcategory clicked directly: Qt only lets a user
+                # click land on Checked or Unchecked (never PartiallyChecked),
+                # so this cascades that state to every descendant leaf.
+                included = item.checkState(0) == Qt.CheckState.Checked
+                self._set_descendants_checked(item, included)
+            self._update_ancestors(item)
+        finally:
+            self.tree.blockSignals(False)
+        self._refresh_export_preview()
+
+    def _set_descendants_checked(self, item, included):
+        state = Qt.CheckState.Checked if included else Qt.CheckState.Unchecked
+        for i in range(item.childCount()):
+            child = item.child(i)
+            child.setCheckState(0, state)
+            raw_name = child.data(0, RAW_NAME_ROLE)
+            if raw_name is not None:
+                self.export_store.set_included(self.content_type, raw_name, included)
+            else:
+                self._set_descendants_checked(child, included)
+
+    def _update_ancestors(self, item):
+        parent = item.parent()
+        while parent is not None:
+            states = [parent.child(i).checkState(0) for i in range(parent.childCount())]
+            if all(s == Qt.CheckState.Checked for s in states):
+                new_state = Qt.CheckState.Checked
+            elif all(s == Qt.CheckState.Unchecked for s in states):
+                new_state = Qt.CheckState.Unchecked
+            else:
+                new_state = Qt.CheckState.PartiallyChecked
+            parent.setCheckState(0, new_state)
+            parent = parent.parent()
+
+    def _set_all_checked(self, included):
+        self.tree.blockSignals(True)
+        try:
+            for i in range(self.tree.topLevelItemCount()):
+                top = self.tree.topLevelItem(i)
+                top.setCheckState(0, Qt.CheckState.Checked if included else Qt.CheckState.Unchecked)
+                self._set_descendants_checked(top, included)
+        finally:
+            self.tree.blockSignals(False)
+        self._refresh_export_preview()
+        self.log(f"{'Selected' if included else 'Deselected'} all {self.content_type} categories for export")
+
+    def _refresh_export_preview(self):
+        self.export_preview_list.clear()
+        included_names = []
+        for cat in self.store.categories(self.content_type):
+            for sub in cat.get('subcategories', []):
+                for raw in sub.get('raw_categories', []):
+                    if self.export_store.is_included(self.content_type, raw):
+                        included_names.append(raw)
+        total = sum(
+            len(sub.get('raw_categories', []))
+            for cat in self.store.categories(self.content_type)
+            for sub in cat.get('subcategories', [])
+        )
+        self.export_preview_label.setText(f"Will Export  ({len(included_names)} of {total})")
+        for name in sorted(included_names, key=str.upper):
+            self.export_preview_list.addItem(QListWidgetItem(name))
 
     def _refresh_category_options(self):
         current = self.category_combo.currentText()
@@ -198,6 +319,7 @@ class MainWindow(QMainWindow):
         self.resize(1200, 800)
 
         self.store = CategoryStore().load()
+        self.export_store = ExportSelectionStore().load()
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -212,8 +334,8 @@ class MainWindow(QMainWindow):
         body_layout.addWidget(self._build_sidebar())
 
         self.tabs = QTabWidget()
-        self.live_tab = CategoryTab('live', self.store, self._log)
-        self.vod_tab = CategoryTab('on_demand', self.store, self._log)
+        self.live_tab = CategoryTab('live', self.store, self.export_store, self._log)
+        self.vod_tab = CategoryTab('on_demand', self.store, self.export_store, self._log)
         self.locals_tab = LocalsTab(self.store, self._log)
         self.settings_tab = SettingsTab(self._log)
         self.tabs.addTab(self.live_tab, "Live TV")
