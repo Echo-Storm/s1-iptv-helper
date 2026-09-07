@@ -22,9 +22,14 @@
       ]
     },
     {
+      "name": "PPV",
+      "subcategories": [
+        {"name": "General", "raw_categories": ["PPV - EVENTS", "PPV (BACKUP)", "PAY PER VIEW", "PAY PER VIEW #2"]}
+      ]
+    },
+    {
       "name": "Sports",
       "subcategories": [
-        {"name": "PPV", "raw_categories": ["PPV - EVENTS", "PPV (BACKUP)"]},
         {"name": "NFL", "raw_categories": ["USA NFL GAMES", "USA NFL TEAMS"]},
         {"name": "NBA", "raw_categories": ["USA NBA GAMES"]},
         {"name": "MLB", "raw_categories": ["USA MLB GAMES", "USA MiLB GAMES", "USA MLB TEAMS"]},
