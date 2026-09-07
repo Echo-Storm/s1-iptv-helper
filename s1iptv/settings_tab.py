@@ -3,11 +3,12 @@
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout, QHBoxLayout, QLineEdit, QPushButton,
-    QCheckBox, QLabel,
+    QCheckBox, QLabel, QFileDialog,
 )
 
 from .xtream_client import XtreamClient, load_config_or_blank, save_config, CONFIG_PATH
 from .category_store import DEFAULT_TAXONOMY_PATH
+from .export import default_export_path
 
 
 class TestConnectionWorker(QThread):
@@ -84,6 +85,18 @@ class SettingsTab(QWidget):
         self.status_label = QLabel("")
         layout.addWidget(self.status_label)
 
+        layout.addWidget(_section_label("Export"))
+        export_form = QFormLayout()
+        export_form.setSpacing(10)
+        export_row = QHBoxLayout()
+        self.export_path_edit = QLineEdit()
+        export_row.addWidget(self.export_path_edit)
+        browse_btn = QPushButton("Browse...")
+        browse_btn.clicked.connect(self._browse_export_path)
+        export_row.addWidget(browse_btn)
+        export_form.addRow("Default M3U path:", export_row)
+        layout.addLayout(export_form)
+
         layout.addWidget(_section_label("File Locations"))
         paths_form = QFormLayout()
         paths_form.setSpacing(6)
@@ -109,6 +122,21 @@ class SettingsTab(QWidget):
         self.server_edit.setText(cfg['server'])
         self.username_edit.setText(cfg['username'])
         self.password_edit.setText(cfg['password'])
+        self.export_path_edit.setText(cfg.get('export_path') or default_export_path())
+
+    def _browse_export_path(self):
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Default M3U export path", self.export_path_edit.text(),
+            "M3U Playlist (*.m3u8 *.m3u);;All Files (*)"
+        )
+        if path:
+            self.export_path_edit.setText(path)
+
+    def refresh_export_path_field(self, path):
+        """Called by MainWindow after a successful export, so this field
+        reflects the path that was actually just used (which becomes the
+        new default)."""
+        self.export_path_edit.setText(path)
 
     def _current_values(self):
         return (
@@ -143,7 +171,7 @@ class SettingsTab(QWidget):
         if not all((server, username, password)):
             self.status_label.setText("Fill in server, username, and password before saving.")
             return
-        save_config(server, username, password)
-        message = f"Saved connection settings to {CONFIG_PATH}"
+        save_config(server, username, password, export_path=self.export_path_edit.text().strip())
+        message = f"Saved settings to {CONFIG_PATH}"
         self.status_label.setText(message)
         self.log(message)

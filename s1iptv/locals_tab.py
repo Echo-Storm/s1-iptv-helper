@@ -98,11 +98,15 @@ class LocalsFetchWorker(QThread):
 
 
 class LocalsTab(QWidget):
-    def __init__(self, store, log_fn):
+    def __init__(self, store, log_fn, selection_store=None, on_change=None):
         super().__init__()
         self.store = store
         self.log = log_fn
-        self.selection_store = LocalsSelectionStore().load()
+        self.selection_store = selection_store if selection_store is not None else LocalsSelectionStore().load()
+        # Called whenever the fetched data or the selection changes, so the
+        # Live TV tab's "Will Export" preview can show an up-to-date
+        # per-state breakdown of what Locals will contribute.
+        self.on_change = on_change
         self.grouped = {}  # state -> [{'name', 'stream_id', 'category_name'}, ...]
         self._worker = None
 
@@ -214,6 +218,11 @@ class LocalsTab(QWidget):
         total = sum(len(v) for v in grouped.values())
         self.log(f"Locals: {total} channels across {len(grouped)} states/regions")
         self._rebuild_state_list()
+        self._notify_change()
+
+    def _notify_change(self):
+        if self.on_change:
+            self.on_change()
 
     def _rebuild_state_list(self):
         self.state_list.clear()
@@ -282,6 +291,7 @@ class LocalsTab(QWidget):
         state = self._current_state()
         if state:
             self._refresh_state_label(state)
+        self._notify_change()
 
     def _set_all_in_current_state(self, selected):
         state = self._current_state()
@@ -291,6 +301,7 @@ class LocalsTab(QWidget):
             self.selection_store.set_selected(ch['stream_id'], selected)
         self._populate_channel_list(state)
         self._refresh_state_label(state)
+        self._notify_change()
 
     # ------------------------------------------------------------------
     def _select_all(self):
@@ -302,6 +313,7 @@ class LocalsTab(QWidget):
         if state:
             self._populate_channel_list(state)
         self.log("Selected all local channels")
+        self._notify_change()
 
     def _deselect_all(self):
         for channels in self.grouped.values():
@@ -312,6 +324,7 @@ class LocalsTab(QWidget):
         if state:
             self._populate_channel_list(state)
         self.log("Deselected all local channels")
+        self._notify_change()
 
     def _select_defaults(self):
         defaults = self.selection_store.default_states
@@ -323,6 +336,7 @@ class LocalsTab(QWidget):
         state = self._current_state()
         if state:
             self._populate_channel_list(state)
+        self._notify_change()
         self.log(f"Selected defaults: {', '.join(sorted(defaults)) or '(none)'}")
 
     def _save_selection(self):

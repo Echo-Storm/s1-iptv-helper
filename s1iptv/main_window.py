@@ -7,16 +7,18 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QLabel, QFrame, QHBoxLayout, QVBoxLayout,
     QPushButton, QTabWidget, QTreeWidget, QTreeWidgetItem, QListWidget,
     QListWidgetItem, QComboBox, QSplitter, QPlainTextEdit, QStatusBar,
-    QMessageBox,
+    QMessageBox, QFileDialog,
 )
 
+from . import export as export_module
 from .category_store import CategoryStore
 from .export_selection import ExportSelectionStore
+from .locals_data import LocalsSelectionStore, find_locals_raw_categories, OTHER_BUCKET
 from .locals_tab import LocalsTab
 from .settings_tab import SettingsTab
-from .xtream_client import XtreamClient, ConfigError
+from .xtream_client import XtreamClient, ConfigError, load_config_or_blank, save_config
 
-APP_VERSION = "0.4.0"
+APP_VERSION = "0.5.0"
 
 RAW_NAME_ROLE = Qt.ItemDataRole.UserRole
 
@@ -42,6 +44,37 @@ class FetchCategoriesWorker(QThread):
             self.failed.emit(traceback.format_exc(limit=3))
 
 
+class ExportWorker(QThread):
+    """Builds the M3U (which means one API call per included raw category
+    plus the Locals fetch if needed) and writes it to disk, off the UI
+    thread since this can take a while."""
+    succeeded = pyqtSignal(str, int, int)  # path, channel_count, locals_channel_count
+    failed = pyqtSignal(str)
+
+    def __init__(self, store, export_store, locals_store, path):
+        super().__init__()
+        self.store = store
+        self.export_store = export_store
+        self.locals_store = locals_store
+        self.path = path
+
+    def run(self):
+        try:
+            client = XtreamClient.from_config()
+            content, count, locals_count = export_module.build_m3u(
+                self.store, self.export_store, self.locals_store, client
+            )
+            with open(self.path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            self.succeeded.emit(self.path, count, locals_count)
+        except ConfigError as e:
+            self.failed.emit(str(e))
+        except OSError as e:
+            self.failed.emit(f"Could not write {self.path}: {e}")
+        except Exception:
+            self.failed.emit(traceback.format_exc(limit=3))
+
+
 def _banner_line():
     line = QFrame()
     line.setProperty('role', 'banner-line')
@@ -60,12 +93,18 @@ class CategoryTab(QWidget):
     preview showing exactly what's currently included, and the
     unassigned/stale triage panel."""
 
-    def __init__(self, content_type, store: CategoryStore, export_store: ExportSelectionStore, log_fn):
+    def __init__(self, content_type, store: CategoryStore, export_store: ExportSelectionStore, log_fn,
+                 locals_tab=None):
         super().__init__()
         self.content_type = content_type
         self.store = store
         self.export_store = export_store
         self.log = log_fn
+        # Only meaningful for content_type == 'live' -- gives the export
+        # preview access to the Locals tab's fetched channel data and
+        # selection, so it can show a real per-state channel count instead
+        # of treating Locals raw category names like any other.
+        self.locals_tab = locals_tab
         self.last_fetched_names = []
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -236,20 +275,78 @@ class CategoryTab(QWidget):
 
     def _refresh_export_preview(self):
         self.export_preview_list.clear()
+
+        # Raw categories inside a subcategory literally named "Locals" don't
+        # get listed like normal raw categories -- their real export set is
+        # the individual-channel selection from the Locals tab, which a bare
+        # category name like "USA ABC" doesn't convey at all.
+        locals_raw_upper = set()
+        for cat in self.store.categories(self.content_type):
+            for sub in cat.get('subcategories', []):
+                if sub['name'].strip().upper() == 'LOCALS':
+                    locals_raw_upper.update(r.strip().upper() for r in sub.get('raw_categories', []))
+
         included_names = []
+        checked_locals_raw = set()
         for cat in self.store.categories(self.content_type):
             for sub in cat.get('subcategories', []):
                 for raw in sub.get('raw_categories', []):
-                    if self.export_store.is_included(self.content_type, raw):
+                    if not self.export_store.is_included(self.content_type, raw):
+                        continue
+                    if raw.strip().upper() in locals_raw_upper:
+                        checked_locals_raw.add(raw.strip().upper())
+                    else:
                         included_names.append(raw)
         total = sum(
             len(sub.get('raw_categories', []))
             for cat in self.store.categories(self.content_type)
             for sub in cat.get('subcategories', [])
+            if sub['name'].strip().upper() != 'LOCALS'
         )
-        self.export_preview_label.setText(f"Will Export  ({len(included_names)} of {total})")
+        self.export_preview_label.setText(f"Will Export  ({len(included_names)} of {total} categories)")
+
+        if checked_locals_raw and self.locals_tab is not None:
+            self._add_locals_preview_rows(checked_locals_raw)
+
         for name in sorted(included_names, key=str.upper):
             self.export_preview_list.addItem(QListWidgetItem(name))
+
+    def _add_locals_preview_rows(self, checked_locals_raw_upper):
+        """Prepend a Locals summary (per-state channel counts) to the export
+        preview list, using whatever the Locals tab currently has -- live
+        data from its last fetch/selection if available, else just the
+        saved total selection count."""
+        selection_store = self.locals_tab.selection_store
+        grouped = self.locals_tab.grouped
+
+        if not grouped:
+            total_selected = len(selection_store.selected_ids)
+            header = QListWidgetItem(
+                f"LOCALS — {total_selected} channels selected (refresh Locals tab for state breakdown)"
+            )
+            header.setForeground(Qt.GlobalColor.yellow)
+            self.export_preview_list.addItem(header)
+            return
+
+        per_state_selected = {}
+        total_selected = 0
+        for state, channels in grouped.items():
+            for ch in channels:
+                if ch['category_name'].strip().upper() not in checked_locals_raw_upper:
+                    continue
+                if selection_store.is_selected(ch['stream_id']):
+                    per_state_selected[state] = per_state_selected.get(state, 0) + 1
+                    total_selected += 1
+
+        header = QListWidgetItem(f"LOCALS — {total_selected} channels selected")
+        header.setForeground(Qt.GlobalColor.yellow)
+        self.export_preview_list.addItem(header)
+        for state in sorted(k for k in per_state_selected if k != OTHER_BUCKET):
+            self.export_preview_list.addItem(QListWidgetItem(f"    {state}: {per_state_selected[state]}"))
+        if OTHER_BUCKET in per_state_selected:
+            self.export_preview_list.addItem(
+                QListWidgetItem(f"    Other/Unrecognized: {per_state_selected[OTHER_BUCKET]}")
+            )
 
     def _refresh_category_options(self):
         current = self.category_combo.currentText()
@@ -320,6 +417,7 @@ class MainWindow(QMainWindow):
 
         self.store = CategoryStore().load()
         self.export_store = ExportSelectionStore().load()
+        self.locals_selection_store = LocalsSelectionStore().load()
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -334,10 +432,12 @@ class MainWindow(QMainWindow):
         body_layout.addWidget(self._build_sidebar())
 
         self.tabs = QTabWidget()
-        self.live_tab = CategoryTab('live', self.store, self.export_store, self._log)
+        self.locals_tab = LocalsTab(self.store, self._log, selection_store=self.locals_selection_store)
+        self.live_tab = CategoryTab('live', self.store, self.export_store, self._log, locals_tab=self.locals_tab)
         self.vod_tab = CategoryTab('on_demand', self.store, self.export_store, self._log)
-        self.locals_tab = LocalsTab(self.store, self._log)
         self.settings_tab = SettingsTab(self._log)
+        # Locals selection changes should refresh the Live TV export preview.
+        self.locals_tab.on_change = self.live_tab._refresh_export_preview
         self.tabs.addTab(self.live_tab, "Live TV")
         self.tabs.addTab(self.vod_tab, "On Demand")
         self.tabs.addTab(self.locals_tab, "Locals")
@@ -396,10 +496,10 @@ class MainWindow(QMainWindow):
         layout.addWidget(save_btn)
 
         layout.addWidget(_section_label("Export"))
-        export_btn = QPushButton("Export Live M3U...")
-        export_btn.setEnabled(False)
-        export_btn.setToolTip("Coming soon — see docs/ROADMAP.md")
-        layout.addWidget(export_btn)
+        self.export_btn = QPushButton("Export Live M3U...")
+        self.export_btn.setProperty('role', 'primary')
+        self.export_btn.clicked.connect(self._export_m3u)
+        layout.addWidget(self.export_btn)
 
         layout.addStretch(1)
         return sidebar
@@ -423,6 +523,35 @@ class MainWindow(QMainWindow):
     def _on_fetch_failed(self, message):
         self._log(f"Fetch failed: {message.splitlines()[-1] if message else message}")
         QMessageBox.critical(self, "Fetch failed", message)
+
+    def _export_m3u(self):
+        cfg = load_config_or_blank()
+        default_path = cfg.get('export_path') or export_module.default_export_path()
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Export Live M3U", default_path, "M3U Playlist (*.m3u8 *.m3u);;All Files (*)"
+        )
+        if not path:
+            return
+        self.export_btn.setEnabled(False)
+        self._log(f"Exporting to {path} ...")
+        self._export_worker = ExportWorker(self.store, self.export_store, self.locals_selection_store, path)
+        self._export_worker.succeeded.connect(self._on_export_succeeded)
+        self._export_worker.failed.connect(self._on_export_failed)
+        self._export_worker.start()
+
+    def _on_export_succeeded(self, path, count, locals_count):
+        self.export_btn.setEnabled(True)
+        self._log(f"Exported {count} channels ({locals_count} from Locals) to {path}")
+        # Remember this as the default for next time.
+        cfg = load_config_or_blank()
+        if cfg.get('server'):
+            save_config(cfg['server'], cfg['username'], cfg['password'], export_path=path)
+        self.settings_tab.refresh_export_path_field(path)
+
+    def _on_export_failed(self, message):
+        self.export_btn.setEnabled(True)
+        self._log(f"Export failed: {message.splitlines()[-1] if message else message}")
+        QMessageBox.critical(self, "Export failed", message)
 
     def _save_taxonomy(self):
         self.store.save()

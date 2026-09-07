@@ -34,10 +34,10 @@ def load_config(path=CONFIG_PATH):
 
 
 def load_config_or_blank(path=CONFIG_PATH):
-    """Same as load_config, but returns {'server': '', 'username': '', 'password': ''}
-    instead of raising when the file is missing or incomplete — for the Settings tab,
-    which needs to render even before the app is configured."""
-    blank = {'server': '', 'username': '', 'password': ''}
+    """Same as load_config, but returns blank values instead of raising when
+    the file is missing or incomplete — for the Settings tab, which needs to
+    render even before the app is configured."""
+    blank = {'server': '', 'username': '', 'password': '', 'export_path': ''}
     if not os.path.exists(path):
         return blank
     try:
@@ -49,9 +49,17 @@ def load_config_or_blank(path=CONFIG_PATH):
     return blank
 
 
-def save_config(server, username, password, path=CONFIG_PATH):
+def save_config(server, username, password, export_path=None, path=CONFIG_PATH):
+    """export_path=None leaves whatever was already saved untouched (so
+    saving connection settings doesn't wipe out a previously chosen export
+    path, and vice versa)."""
+    if export_path is None:
+        export_path = load_config_or_blank(path).get('export_path', '')
     with open(path, 'w', encoding='utf-8') as f:
-        json.dump({'server': server, 'username': username, 'password': password}, f, indent=2)
+        json.dump(
+            {'server': server, 'username': username, 'password': password, 'export_path': export_path},
+            f, indent=2,
+        )
 
 
 def classify_url(url):
@@ -130,8 +138,16 @@ class XtreamClient:
         return data
 
     # ---- Convenience ------------------------------------------------
-    def live_stream_url(self, stream_id, ext='ts'):
-        return f"{self.server}/live/{self.username}/{self.password}/{stream_id}.{ext}"
+    def live_stream_url(self, stream_id):
+        """
+        No /live/ prefix and no extension -- confirmed against a live fetch
+        of this provider's own m3u_plus export (2026-09-06):
+          https://blueonesuperoceanhere.com:443/{user}/{pass}/{stream_id}
+        This differs from the generic Xtream Codes convention (which usually
+        has /live/ and a .ts/.m3u8 extension) -- don't "fix" this to match
+        the generic pattern without re-verifying against a real fetch first.
+        """
+        return f"{self.server}:443/{self.username}/{self.password}/{stream_id}"
 
     def movie_stream_url(self, vod_id, ext='mp4'):
         return f"{self.server}/movie/{self.username}/{self.password}/{vod_id}.{ext}"
