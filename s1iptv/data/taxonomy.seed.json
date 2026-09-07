@@ -1,0 +1,154 @@
+{
+  "live": [
+    {
+      "name": "USA LIVE",
+      "subcategories": [
+        {
+          "name": "General",
+          "raw_categories": [
+            "USA ENTERTAINMENT", "USA KIDS", "USA NEWS", "USA SPORTS",
+            "USA PBS", "USA MOVIE CHANNELS", "USA MUSIC CHANNELS", "Music",
+            "USA DOCUMENTARIES", "USA DISCOVERY+", "US PARAMOUNT+",
+            "USA LATIN CHANNELS", "4K CHANNELS"
+          ]
+        },
+        {
+          "name": "Locals",
+          "raw_categories": [
+            "USA ABC", "USA CBS", "USA FOX", "USA NBC", "USA THE CW",
+            "USA LOCAL CHANNELS", "USA UNIVISION LOCALES", "USA TELEMUNDO LOCALES"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sports",
+      "subcategories": [
+        {"name": "PPV", "raw_categories": ["PPV - EVENTS", "PPV (BACKUP)"]},
+        {"name": "NFL", "raw_categories": ["USA NFL GAMES", "USA NFL TEAMS"]},
+        {"name": "NBA", "raw_categories": ["USA NBA GAMES"]},
+        {"name": "MLB", "raw_categories": ["USA MLB GAMES", "USA MiLB GAMES", "USA MLB TEAMS"]},
+        {"name": "NHL", "raw_categories": ["USA NHL GAMES"]},
+        {"name": "NCAAF", "raw_categories": ["USA NCAAF GAMES", "USA NCAAF GAMES (BACKUP)"]},
+        {"name": "NCAAB", "raw_categories": ["USA NCAAB GAMES", "USA NCAAB GAMES (BACKUP)"]},
+        {"name": "WNBA", "raw_categories": ["USA WNBA GAMES"]},
+        {"name": "MLS", "raw_categories": ["USA MLS GAMES"]},
+        {"name": "Racing", "raw_categories": ["USA RACING", "FORMULA1 TV/CAM"]},
+        {"name": "Combat", "raw_categories": ["UFC EVENTS"]},
+        {
+          "name": "International",
+          "raw_categories": [
+            "ESPN UNLIMITED EVENTS", "SKY SPORTS+ EVENTS", "CA TSN+ EVENTS",
+            "CA SPORTSNET+", "SOCCER EVENTS", "TENNIS CHANNELS",
+            "DAZN CANADA & UK", "PEACOCK EVENTS", "TUDN / ViX / BEIN SPORT EVENTS",
+            "American Hockey League", "UK SKY SPORTS", "UK SKY NETWORK",
+            "FloCOLLEGE SPORTS", "Canadian Hockey League", "PDC DARTS",
+            "OPTUS SPORT EVENTS", "STAN SPORTS EVENTS", "FUBO SPORTS EVENTS",
+            "EFL - iFOLLOW", "STARHUB PREMIER SPORTS", "Scottish SPFL",
+            "UK SPORTS", "PREMIER LEAGUE TEAMS"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Canada",
+      "subcategories": [
+        {
+          "name": "General",
+          "raw_categories": ["CANADA ENTERTAINMENT", "CANADA LOCALS", "CANADA FRENCH", "CANADA SPORTS"]
+        }
+      ]
+    },
+    {
+      "name": "International",
+      "subcategories": [
+        {
+          "name": "Latin America",
+          "raw_categories": [
+            "MEXICO", "MEXICO VIX+", "ARGENTINA", "PERU", "PERU DEPORTES EXCLUSIVO",
+            "COLOMBIA", "ECUADOR", "CHILE", "VENEZUELA", "URUGUAY", "PARAGUAY", "BRASIL",
+            "COSTA RICA", "PANAMA", "HONDURAS", "EL SALVADOR", "GUATEMALA",
+            "NICARAGUA", "REPUBLICA DOMINICANA", "LAT DEPORTES",
+            "LAT ENTRETENIMIENTO", "LAT DOCUMENTALES", "LAT MUSICA",
+            "LAT INFANTIL", "LAT NOTICIAS", "LA LIGA ESPAÑOLA MOVISTAR⚽"
+          ]
+        },
+        {"name": "Europe", "raw_categories": ["FRANCE", "ITALY", "PORTUGAL", "NETHERLANDS", "ESPAÑA"]},
+        {"name": "UK", "raw_categories": ["UK ENTERTAINMENT"]},
+        {"name": "Caribbean", "raw_categories": ["CARIBBEAN HUB", "CARIBBEAN / CURACAO AMP", "CUBA/MIAMI", "PUERTO RICO"]},
+        {"name": "Asia Pacific", "raw_categories": ["PHILIPPINES", "AUSTRALIA"]},
+        {"name": "Other", "raw_categories": ["FOR ADULTS", "TRILLER TV", "LA CASA DE FAMOSOS 2026", "BIG BROTHER 2026"]}
+      ]
+    }
+  ],
+  "on_demand": [
+    {
+      "name": "Streaming Services",
+      "subcategories": [
+        {"name": "Netflix", "raw_categories": ["Netflix", "Netflix Kids"]},
+        {"name": "Hulu", "raw_categories": ["Hulu", "Hulu Kids"]},
+        {"name": "Disney+", "raw_categories": ["Disney+", "Disney+ Kids"]},
+        {"name": "HBO Max", "raw_categories": ["HBO Max", "HBO Max Kids", "HBO"]},
+        {"name": "Amazon Prime Video", "raw_categories": ["Amazon Prime Video", "Amazon Prime Video Kids"]},
+        {"name": "Paramount+", "raw_categories": ["Paramount+", "Paramount+ Kids"]},
+        {"name": "Peacock", "raw_categories": ["Peacock", "Peacock Kids"]},
+        {"name": "AMC+", "raw_categories": ["AMC+", "AMC"]},
+        {"name": "Starz", "raw_categories": ["Starz"]},
+        {"name": "Showtime", "raw_categories": ["Showtime"]},
+        {"name": "MGM+", "raw_categories": ["MGM+"]},
+        {"name": "BritBox", "raw_categories": ["BritBox"]},
+        {"name": "Acorn TV", "raw_categories": ["Acorn TV"]},
+        {"name": "Crunchyroll", "raw_categories": ["Crunchyroll"]},
+        {"name": "MUBI", "raw_categories": ["MUBI"]},
+        {"name": "Shudder", "raw_categories": ["Shudder"]}
+      ]
+    },
+    {
+      "name": "Networks",
+      "subcategories": [
+        {
+          "name": "Broadcast & Cable",
+          "raw_categories": [
+            "ABC", "CBS", "FOX", "NBC", "The CW", "BBC", "A&E", "USA Network",
+            "TNT", "TBS", "FX", "Syfy", "Bravo", "Lifetime", "Channel 4",
+            "National Geographic", "Sky Atlantic", "Adult Swim"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Genres",
+      "subcategories": [
+        {
+          "name": "General",
+          "raw_categories": [
+            "Drama", "Comedy", "Action", "Adventure", "Crime", "Mystery",
+            "Thriller", "Horror", "Romance", "Science Fiction", "Fantasy",
+            "Animation", "Family", "Documentary", "History", "War", "Western",
+            "Music", "Talk", "News", "Reality", "TV Movie"
+          ]
+        },
+        {
+          "name": "Charts",
+          "raw_categories": [
+            "Popular TV Shows", "Trending TV Shows", "Top Rated TV Shows",
+            "Airing Today", "Popular Movies", "Trending Movies",
+            "2026 Movies", "4K Movies", "TV Shows", "Movies"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "International",
+      "subcategories": [
+        {
+          "name": "General",
+          "raw_categories": [
+            "KR: Korean TV Shows", "KR: Korean Movies", "IN: Indian TV Shows",
+            "IN: Indian Movies", "ES: Series", "ES: Peliculas", "Anime"
+          ]
+        }
+      ]
+    }
+  ]
+}

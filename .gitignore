@@ -1,0 +1,81 @@
+# S1 IPTV Helper — .gitignore
+
+# ---------------------------------------------------------------------------
+# SENSITIVE — never commit these
+# ---------------------------------------------------------------------------
+
+# User config contains the IPTV account username/password
+config.json
+
+# Personal working taxonomy - the tracked starting point is data/taxonomy.seed.json
+taxonomy.json
+
+# Generated playlists embed the account credentials in every stream URL
+*.m3u
+*.m3u8
+
+# ---------------------------------------------------------------------------
+# GENERATED AT RUNTIME — no value in tracking these
+# ---------------------------------------------------------------------------
+
+# App log file
+S1_IPTV_Helper_Log.txt
+
+# Cached provider category/stream dumps (regenerate via the app instead)
+cache/
+
+# ---------------------------------------------------------------------------
+# PYTHON
+# ---------------------------------------------------------------------------
+
+# Virtual environment created by launch.bat
+venv/
+
+# Compiled bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ---------------------------------------------------------------------------
+# PROJECT — local-only directories
+# ---------------------------------------------------------------------------
+
+# Claude Code worktrees and session data
+.claude/
+
+# Scratch / working files not for distribution
+Scratch/
+
+# ---------------------------------------------------------------------------
+# WINDOWS
+# ---------------------------------------------------------------------------
+
+# Thumbnail cache
+Thumbs.db
+ehthumbs.db
+
+# Windows shortcut files (user-specific)
+*.lnk
+
+# Windows folder metadata
+desktop.ini
+
+# ---------------------------------------------------------------------------
+# EDITORS / IDEs
+# ---------------------------------------------------------------------------
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace

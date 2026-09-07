@@ -1,0 +1,4 @@
+# PyQt6 6.5+ for stable QThreadPool/QSS behaviour on Windows (matches
+# Echo Audio Converter / TorBox Manager).
+PyQt6>=6.5.0
+requests>=2.28.0
