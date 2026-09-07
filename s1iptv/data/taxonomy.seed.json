@@ -6,7 +6,7 @@
         {
           "name": "General",
           "raw_categories": [
-            "USA ENTERTAINMENT", "USA KIDS", "USA NEWS",
+            "USA ENTERTAINMENT", "USA KIDS", "USA NEWS", "USA SPORTS",
             "USA MOVIE CHANNELS", "USA DOCUMENTARIES", "USA DISCOVERY+",
             "USA LATIN CHANNELS", "4K CHANNELS"
           ]
@@ -30,12 +30,6 @@
       "name": "PPV",
       "subcategories": [
         {"name": "General", "raw_categories": ["PPV - EVENTS", "PPV (BACKUP)", "PAY PER VIEW", "PAY PER VIEW #2"]}
-      ]
-    },
-    {
-      "name": "Sports",
-      "subcategories": [
-        {"name": "General", "raw_categories": ["USA SPORTS"]}
       ]
     },
     {
