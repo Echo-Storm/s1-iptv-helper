@@ -11,9 +11,10 @@ from PyQt6.QtWidgets import (
 )
 
 from .category_store import CategoryStore
+from .settings_tab import SettingsTab
 from .xtream_client import XtreamClient, ConfigError
 
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.2.0"
 
 
 class FetchCategoriesWorker(QThread):
@@ -212,8 +213,10 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.live_tab = CategoryTab('live', self.store, self._log)
         self.vod_tab = CategoryTab('on_demand', self.store, self._log)
+        self.settings_tab = SettingsTab(self._log)
         self.tabs.addTab(self.live_tab, "Live TV")
         self.tabs.addTab(self.vod_tab, "On Demand")
+        self.tabs.addTab(self.settings_tab, "Settings")
         body_layout.addWidget(self.tabs, stretch=1)
         root.addWidget(body, stretch=1)
 

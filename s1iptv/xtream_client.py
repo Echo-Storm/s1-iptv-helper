@@ -33,6 +33,27 @@ def load_config(path=CONFIG_PATH):
     return cfg
 
 
+def load_config_or_blank(path=CONFIG_PATH):
+    """Same as load_config, but returns {'server': '', 'username': '', 'password': ''}
+    instead of raising when the file is missing or incomplete — for the Settings tab,
+    which needs to render even before the app is configured."""
+    blank = {'server': '', 'username': '', 'password': ''}
+    if not os.path.exists(path):
+        return blank
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            cfg = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return blank
+    blank.update({k: cfg.get(k, '') for k in blank})
+    return blank
+
+
+def save_config(server, username, password, path=CONFIG_PATH):
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump({'server': server, 'username': username, 'password': password}, f, indent=2)
+
+
 def classify_url(url):
     """Return 'movie', 'series', or 'live' based on the stream URL shape."""
     u = url.lower()
