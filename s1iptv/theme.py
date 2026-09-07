@@ -103,17 +103,28 @@ def build_stylesheet():
         border: 1px solid {COLOR_BORDER};
         top: -1px;
     }}
+    QTabBar {{
+        qproperty-drawBase: 0;
+    }}
     QTabBar::tab {{
-        background: transparent;
+        background: {COLOR_PANEL};
         color: {COLOR_TEXT_MUTED};
-        padding: 6px 16px;
-        border-bottom: 2px solid transparent;
+        padding: 9px 22px;
+        margin-right: 3px;
+        border: 1px solid {COLOR_BORDER_BRIGHT};
+        border-bottom: none;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        font-weight: 600;
     }}
     QTabBar::tab:selected {{
+        background: {COLOR_ACCENT_DIM};
         color: {COLOR_ACCENT};
-        border-bottom: 2px solid {COLOR_ACCENT};
+        border: 1px solid {COLOR_ACCENT};
+        border-bottom: none;
     }}
     QTabBar::tab:hover:!selected {{
+        background: {COLOR_BUTTON_HOVER};
         color: {COLOR_TEXT};
     }}
 

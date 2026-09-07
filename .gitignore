@@ -10,6 +10,9 @@ config.json
 # Personal working taxonomy - the tracked starting point is data/taxonomy.seed.json
 taxonomy.json
 
+# Personal locals channel selection (which stream_ids are checked)
+locals_selection.json
+
 # Generated playlists embed the account credentials in every stream URL
 *.m3u
 *.m3u8

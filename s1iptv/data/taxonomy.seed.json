@@ -7,7 +7,7 @@
           "name": "General",
           "raw_categories": [
             "USA ENTERTAINMENT", "USA KIDS", "USA NEWS", "USA SPORTS",
-            "USA PBS", "USA MOVIE CHANNELS", "USA MUSIC CHANNELS", "Music",
+            "USA MOVIE CHANNELS", "USA MUSIC CHANNELS", "Music",
             "USA DOCUMENTARIES", "USA DISCOVERY+", "US PARAMOUNT+",
             "USA LATIN CHANNELS", "4K CHANNELS"
           ]
@@ -15,7 +15,7 @@
         {
           "name": "Locals",
           "raw_categories": [
-            "USA ABC", "USA CBS", "USA FOX", "USA NBC", "USA THE CW",
+            "USA ABC", "USA CBS", "USA FOX", "USA NBC", "USA THE CW", "USA PBS",
             "USA LOCAL CHANNELS", "USA UNIVISION LOCALES", "USA TELEMUNDO LOCALES"
           ]
         }
